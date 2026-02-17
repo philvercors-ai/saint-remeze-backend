@@ -138,6 +138,7 @@ process.on('unhandledRejection', (err) => {
   console.error('❌ Erreur non gérée:', err.message);
 });
 
-process.on('SIGTERM', () => {
-  mongoose.connection.close(() => process.exit(0));
+process.on('SIGTERM', async () => {
+  await mongoose.connection.close();
+  process.exit(0);
 });
