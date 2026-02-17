@@ -1,24 +1,28 @@
+// middleware/authUser.js
 const jwt = require('jsonwebtoken');
 
-module.exports = (req, res, next) => {
+module.exports = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    
-    if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Token manquant' 
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Accès non autorisé - Token manquant'
       });
     }
-    
+
+    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
     req.userId = decoded.userId;
-    req.user = decoded;
+    req.userRole = decoded.role;
+
     next();
   } catch (error) {
-    res.status(401).json({ 
-      success: false, 
-      message: 'Token invalide' 
+    return res.status(401).json({
+      success: false,
+      message: 'Token invalide ou expiré'
     });
   }
 };

@@ -1,84 +1,172 @@
 const express = require('express');
 const router = express.Router();
-const User = require('../models/User');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { body, validationResult } = require('express-validator');
+const mongoose = require('mongoose');
+const User = require('../models/User');
 
-// Inscription
-router.post('/register', [
-  body('name').notEmpty().withMessage('Nom requis'),
-  body('email').isEmail().withMessage('Email invalide'),
-  body('password').isLength({ min: 6 }).withMessage('Mot de passe min 6 caractères')
-], async (req, res) => {
+// ============================
+// POST /api/auth/register
+// ============================
+router.post('/register', async (req, res) => {
   try {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ success: false, errors: errors.array() });
+    console.log('📝 Tentative inscription:', req.body?.email);
+
+    const { name, email, password, phone, rgpdConsent } = req.body;
+
+    // Validation des champs obligatoires
+    if (!name || !email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nom, email et mot de passe sont obligatoires'
+      });
     }
 
-    const { name, email, password, phone } = req.body;
-
-    const existingUser = await User.findOne({ email });
+    // Vérifier si l'email existe déjà
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingUser) {
-      return res.status(400).json({ success: false, message: 'Email déjà utilisé' });
+      return res.status(400).json({
+        success: false,
+        message: 'Cet email est déjà utilisé'
+      });
     }
 
-    const user = new User({ name, email, password, phone });
-    await user.save();
+    // Hasher le mot de passe
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    // Créer l'utilisateur
+    const user = new User({
+      name: name.trim(),
+      email: email.toLowerCase().trim(),
+      password: hashedPassword,
+      phone: phone?.trim() || '',
+      role: 'user',
+      rgpdConsent: rgpdConsent || false,
+      rgpdConsentDate: rgpdConsent ? new Date() : null
+    });
+
+    await user.save();
+    console.log('✅ Utilisateur créé:', user.email);
+
+    // Générer le token JWT
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
 
     res.status(201).json({
       success: true,
+      message: 'Compte créé avec succès',
       data: {
         token,
         user: {
-          id: user._id,
+          _id: user._id,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           role: user.role
         }
       }
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
+    console.error('❌ Erreur inscription:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur serveur: ' + error.message
+    });
   }
 });
 
-// Connexion
+// ============================
+// POST /api/auth/login
+// ============================
 router.post('/login', async (req, res) => {
   try {
+    console.log('🔑 Tentative connexion:', req.body?.email);
+
     const { email, password } = req.body;
 
-    const user = await User.findOne({ email });
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Email et mot de passe obligatoires'
+      });
+    }
+
+    // Trouver l'utilisateur
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
     if (!user) {
-      return res.status(401).json({ success: false, message: 'Email ou mot de passe incorrect' });
+      return res.status(401).json({
+        success: false,
+        message: 'Email ou mot de passe incorrect'
+      });
     }
 
-    const isMatch = await user.comparePassword(password);
+    // Vérifier le mot de passe
+    const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(401).json({ success: false, message: 'Email ou mot de passe incorrect' });
+      return res.status(401).json({
+        success: false,
+        message: 'Email ou mot de passe incorrect'
+      });
     }
 
-    user.lastLogin = Date.now();
-    await user.save();
+    // Générer le token JWT
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
 
-    const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+    console.log('✅ Connexion réussie:', user.email, '| Rôle:', user.role);
 
     res.json({
       success: true,
       data: {
         token,
         user: {
-          id: user._id,
+          _id: user._id,
           name: user.name,
           email: user.email,
+          phone: user.phone,
           role: user.role
         }
       }
     });
+
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
+    console.error('❌ Erreur connexion:', error.message);
+    res.status(500).json({
+      success: false,
+      message: 'Erreur serveur: ' + error.message
+    });
+  }
+});
+
+// ============================
+// GET /api/auth/me
+// ============================
+router.get('/me', async (req, res) => {
+  try {
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({ success: false, message: 'Token manquant' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const user = await User.findById(decoded.userId).select('-password');
+
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'Utilisateur non trouvé' });
+    }
+
+    res.json({ success: true, data: user });
+  } catch (error) {
+    res.status(401).json({ success: false, message: 'Token invalide' });
   }
 });
 

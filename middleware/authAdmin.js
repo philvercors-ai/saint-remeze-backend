@@ -1,25 +1,39 @@
+// middleware/authAdmin.js
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 module.exports = async (req, res, next) => {
   try {
-    const token = req.headers.authorization?.split(' ')[1];
-    
-    if (!token) {
-      return res.status(401).json({ success: false, message: 'Token manquant' });
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return res.status(401).json({
+        success: false,
+        message: 'Accès non autorisé - Token manquant'
+      });
     }
-    
+
+    const token = authHeader.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    // Vérifier que l'utilisateur est admin
     const user = await User.findById(decoded.userId);
-    
     if (!user || user.role !== 'admin') {
-      return res.status(403).json({ success: false, message: 'Accès refusé' });
+      return res.status(403).json({
+        success: false,
+        message: 'Accès refusé - Droits admin requis'
+      });
     }
-    
+
     req.userId = decoded.userId;
+    req.userRole = decoded.role;
     req.user = user;
+
     next();
   } catch (error) {
-    res.status(401).json({ success: false, message: 'Token invalide' });
+    return res.status(401).json({
+      success: false,
+      message: 'Token invalide ou expiré'
+    });
   }
 };
