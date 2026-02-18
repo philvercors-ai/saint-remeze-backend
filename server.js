@@ -67,18 +67,23 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(async () => {
     console.log('✅ Connecté à MongoDB Atlas');
 
-    const User = require('./models/User');
-    const adminExists = await User.findOne({ email: 'admin@saint-remeze.fr' });
-    if (!adminExists) {
-      const admin = new User({
-        name: 'Administrateur',
-        email: 'admin@saint-remeze.fr',
-        password: 'admin123',
-        role: 'admin'
-      });
-      await admin.save();
-      console.log('👤 Compte admin créé');
-    }
+  const User = require('./models/User');
+const bcrypt = require('bcryptjs');
+
+const adminExists = await User.findOne({ email: 'admin@saint-remeze.fr' });
+if (!adminExists) {
+  const salt = await bcrypt.genSalt(10);
+  const hashedPassword = await bcrypt.hash('admin123', salt);
+  
+  const admin = new User({
+    name: 'Administrateur',
+    email: 'admin@saint-remeze.fr',
+    password: hashedPassword,
+    role: 'admin'
+  });
+  await admin.save();
+  console.log('👤 Compte admin créé avec mot de passe haché');
+}
 
     setTimeout(autoArchiveOldRemarks, 5000);
   })
