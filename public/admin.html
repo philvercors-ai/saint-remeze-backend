@@ -622,10 +622,15 @@ async function exportPDF() {
     doc.text(`En attente : ${stats.enAttente}  |  En cours : ${stats.enCours}`, 14, 69);
     doc.text(`Terminées : ${stats.terminees}  |  Rejetées : ${stats.rejetees}`, 14, 75);
     
+    // Titres des graphiques
+    doc.setFontSize(11).setFont('helvetica', 'bold');
+    doc.text('Répartition par statut', 14, 83);
+    doc.text('Répartition par catégorie', 110, 83);
+    
     try {
         const statusChart = await createChartImage('pie', ['En attente', 'En cours', 'Terminées', 'Rejetées'], 
             [stats.enAttente, stats.enCours, stats.terminees, stats.rejetees], ['#f59e0b', '#3b82f6', '#10b981', '#ef4444']);
-        doc.addImage(statusChart, 'PNG', 14, 85, 80, 80);
+        doc.addImage(statusChart, 'PNG', 14, 88, 80, 80);
         
         allRemarks.forEach(r => {
             const cat = cleanText(r.category);
@@ -673,7 +678,7 @@ async function exportPDF() {
         const catLabels = Object.keys(categoryStats);
         if (catLabels.length > 0) {
             const catChart = await createChartImage('pie', catLabels, Object.values(categoryStats), generateColors(catLabels.length));
-            doc.addImage(catChart, 'PNG', 110, 85, 80, 80);
+            doc.addImage(catChart, 'PNG', 110, 88, 80, 80);
         }
     } catch (e) { console.error('Erreur graphiques:', e); }
 
@@ -698,12 +703,17 @@ async function exportPDF() {
         
         // Statut
         currentY += 12;
+        // STATUT ET CATÉGORIE SUR LA MÊME LIGNE
         doc.setFontSize(10).setTextColor(0).setFont('helvetica', 'bold').text('STATUT :', 14, currentY);
         if(remark.status === 'Terminée') doc.setTextColor(16, 185, 129);
         else if(remark.status === 'En cours') doc.setTextColor(59, 130, 246);
         else if(remark.status === 'Rejetée') doc.setTextColor(239, 68, 68);
         else doc.setTextColor(245, 158, 11);
         doc.text(remark.status.toUpperCase(), 35, currentY);
+        
+        // Catégorie à droite sur la même ligne
+        doc.setTextColor(0).setFont('helvetica', 'bold').text('| CATÉGORIE :', 80, currentY);
+        doc.setFont('helvetica', 'normal').text(cleanText(remark.category), 110, currentY);
         
         // --- BLOC DÉCLARANT ---
         currentY += 10;
@@ -714,10 +724,6 @@ async function exportPDF() {
         currentY += 5;
         doc.setFontSize(9).setTextColor(100);
         doc.text(`Email : ${remark.email || 'N/A'}  |  Tél : ${remark.phone || 'N/A'}`, 40, currentY);
-        
-        // Catégorie à droite du bloc déclarant
-        doc.setFontSize(10).setTextColor(0).setFont('helvetica', 'bold').text('Catégorie :', 110, currentY - 5);
-        doc.setFont('helvetica', 'normal').text(cleanText(remark.category), 132, currentY - 5);
         
         // Description
         currentY += 12;
