@@ -572,219 +572,119 @@ function exportCSV() {
 // À copier APRÈS la partie 2 dans admin.html
 // ============================================================
 
+// ============================================================
+// PARTIE 3 - EXPORT PDF OPTIMISÉ (COMPRESSION < 5MO)
+// ============================================================
+
 async function exportPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF({ compress: true }); // ✅ Compression activée
+    // Utilisation de la compression native de jsPDF
+    const doc = new jsPDF({ compress: true }); 
     const pageWidth = doc.internal.pageSize.getWidth();
+
+    // --- UTILITAIRE DE COMPRESSION D'IMAGE ---
+    async function compressImageData(base64Str, maxWidth = 800, quality = 0.5) {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.crossOrigin = "Anonymous";
+            img.src = base64Str;
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                let width = img.width;
+                let height = img.height;
+
+                // Redimensionnement proportionnel
+                if (width > maxWidth) {
+                    height = (maxWidth / width) * height;
+                    width = maxWidth;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                // Export en JPEG (beaucoup plus léger que PNG pour les photos)
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(null);
+        });
+    }
 
     const cleanText = (str) => {
         if (!str) return "";
         return str.replace(/[^\p{L}\p{N}\s,.'\-\/]/gu, '').trim();
     };
 
-    // ===== FONCTION DE CRÉATION DE GRAPHIQUE =====
     async function createChartImage(type, labels, data, colors) {
         return new Promise((resolve) => {
             const canvas = document.createElement('canvas');
-            canvas.width = 400;
-            canvas.height = 400;
+            canvas.width = 400; canvas.height = 400;
             const ctx = canvas.getContext('2d');
-            
             new Chart(ctx, {
                 type: type,
                 data: {
                     labels: labels,
-                    datasets: [{
-                        data: data,
-                        backgroundColor: colors,
-                        borderWidth: 2,
-                        borderColor: '#ffffff'
-                    }]
+                    datasets: [{ data: data, backgroundColor: colors, borderWidth: 1 }]
                 },
-                options: {
-                    responsive: false,
-                    animation: false,
-                    plugins: {
-                        legend: {
-                            display: true,
-                            position: 'bottom',
-                            labels: { font: { size: 12 }, padding: 10 }
-                        }
-                    }
-                }
+                options: { responsive: false, animation: false }
             });
-            
             setTimeout(() => {
-                resolve(canvas.toDataURL('image/png', 0.8)); // ✅ Qualité 0.8 pour compression
+                resolve(canvas.toDataURL('image/jpeg', 0.6)); // JPEG pour le poids
             }, 100);
         });
     }
 
-    // ===== FONCTION DE GÉNÉRATION DE COULEURS =====
     function generateColors(count) {
-        const colors = [
-            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
-            '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
-            '#06b6d4', '#a855f7', '#eab308', '#22c55e', '#f43f5e'
-        ];
-        // Si besoin de plus de couleurs que disponibles, générer aléatoirement
-        while (colors.length < count) {
-            const hue = Math.floor(Math.random() * 360);
-            colors.push(`hsl(${hue}, 70%, 60%)`);
-        }
+        const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6'];
+        while (colors.length < count) colors.push(`hsl(${Math.random() * 360}, 70%, 60%)`);
         return colors.slice(0, count);
     }
 
-    // ===== CALCUL DES STATS AVANT TOUT =====
-    const stats = {
-        total: allRemarks.length,
-        enAttente: allRemarks.filter(r => r.status === 'En attente').length,
-        enCours: allRemarks.filter(r => r.status === 'En cours').length,
-        terminees: allRemarks.filter(r => r.status === 'Terminée').length,
-        rejetees: allRemarks.filter(r => r.status === 'Rejetée').length
-    };
-
-    // Calcul des catégories
+    // --- CALCUL STATS ---
     const categoryStats = {};
     allRemarks.forEach(r => {
         const cat = cleanText(r.category);
         if (cat) categoryStats[cat] = (categoryStats[cat] || 0) + 1;
     });
 
-    // ===== PAGE 1 - SYNTHÈSE =====
-    try {
-        const imgData = await getBase64Image('/logo-saint-remeze.png');
-        const imgProps = doc.getImageProperties(imgData);
-        const logoHeight = 25;
-        const logoWidth = (imgProps.width * logoHeight) / imgProps.height;
-        doc.addImage(imgData, 'PNG', 14, 10, logoWidth, logoHeight);
-    } catch (e) { console.log('Logo non chargé'); }
-    
-    doc.setTextColor(30, 41, 59);
-    doc.setFontSize(22).setFont('helvetica', 'bold');
-    const title1 = 'Export des remarques citoyennes';
-    doc.text(title1, (pageWidth - doc.getTextWidth(title1)) / 2, 22);
-    
-    doc.setFontSize(16).setFont('helvetica', 'normal');
-    const title2 = 'Commune de Saint-Remèze';
-    doc.text(title2, (pageWidth - doc.getTextWidth(title2)) / 2, 30);
-    
-    const now = new Date();
-    const dateStr = `Généré le ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')}`;
-    doc.setFontSize(10).setTextColor(100);
-    doc.text(dateStr, (pageWidth - doc.getTextWidth(dateStr)) / 2, 37);
-    
-    doc.setDrawColor(226, 232, 240).line(14, 45, pageWidth - 14, 45);
+    // --- PAGE 1 : SYNTHÈSE ---
+    doc.setFontSize(20).setFont('helvetica', 'bold').text('Rapport des Signalements Citoyens', 14, 25);
+    doc.setFontSize(12).setFont('helvetica', 'normal').text(`Saint-Remèze - ${new Date().toLocaleDateString('fr-FR')}`, 14, 35);
+    doc.setDrawColor(200).line(14, 40, pageWidth - 14, 40);
 
-    doc.setTextColor(0).setFontSize(14).setFont('helvetica', 'bold').text('Statistiques globales', 14, 55);
-    doc.setFontSize(11).setFont('helvetica', 'normal');
-    doc.text(`Total des signalements : ${stats.total}`, 14, 63);
-    doc.text(`En attente : ${stats.enAttente}  |  En cours : ${stats.enCours}`, 14, 69);
-    doc.text(`Terminées : ${stats.terminees}  |  Rejetées : ${stats.rejetees}`, 14, 75);
-    
-    // Titres des graphiques
-    doc.setFontSize(11).setFont('helvetica', 'bold');
-    doc.text('Répartition par statut', 14, 83);
-    doc.text('Répartition par catégorie', 110, 83);
-    
-    // ===== CRÉATION DES DEUX GRAPHIQUES =====
+    // Graphiques de synthèse (compressés)
     try {
-        // Graphique statut (gauche)
-        const statusChart = await createChartImage(
-            'pie', 
-            ['En attente', 'En cours', 'Terminées', 'Rejetées'], 
-            [stats.enAttente, stats.enCours, stats.terminees, stats.rejetees], 
-            ['#f59e0b', '#3b82f6', '#10b981', '#ef4444']
-        );
-        doc.addImage(statusChart, 'PNG', 14, 88, 80, 80);
+        const statusChart = await createChartImage('pie', ['Attente', 'Cours', 'Terminée', 'Rejetée'], 
+            [allRemarks.filter(r => r.status === 'En attente').length, 
+             allRemarks.filter(r => r.status === 'En cours').length,
+             allRemarks.filter(r => r.status === 'Terminée').length,
+             allRemarks.filter(r => r.status === 'Rejetée').length], 
+            ['#f59e0b', '#3b82f6', '#10b981', '#ef4444']);
+        doc.addImage(statusChart, 'JPEG', 14, 50, 80, 80);
         
-        // Graphique catégories (droite)
         const catLabels = Object.keys(categoryStats);
         if (catLabels.length > 0) {
-            const catChart = await createChartImage(
-                'pie', 
-                catLabels, 
-                Object.values(categoryStats), 
-                generateColors(catLabels.length)
-            );
-            doc.addImage(catChart, 'PNG', 110, 88, 80, 80);
+            const catChart = await createChartImage('pie', catLabels, Object.values(categoryStats), generateColors(catLabels.length));
+            doc.addImage(catChart, 'JPEG', 110, 50, 80, 80);
         }
-    } catch (e) { 
-        console.error('Erreur graphiques:', e); 
-    }
+    } catch (e) { console.error(e); }
 
-    doc.setFontSize(12).setFont('helvetica', 'bold').text('Répartition par catégories :', 14, 175);
-    let catY = 182;
-    Object.entries(categoryStats).forEach(([cat, count]) => {
-        if (catY > 280) return;
-        doc.setFontSize(10).setFont('helvetica', 'normal').text(`• ${cat} : ${count}`, 20, catY);
-        catY += 6;
-    });
-
-    // ===== PAGES DÉTAILS =====
+    // --- PAGES DÉTAILS ---
     for (let i = 0; i < allRemarks.length; i++) {
         const remark = allRemarks[i];
         doc.addPage();
-        let currentY = 25;
-
-        doc.setFontSize(8).setTextColor(150).text('Mairie de Saint-Remèze - Rapport de signalement', 14, 12);
-        doc.setDrawColor(240).line(14, 15, pageWidth - 14, 15);
-
-        doc.setFontSize(16).setFont('helvetica', 'bold').setTextColor(37, 99, 235).text(`${i + 1}. ${remark.title}`, 14, currentY);
         
-        // Statut
-        currentY += 12;
-        // STATUT ET CATÉGORIE SUR LA MÊME LIGNE
-        doc.setFontSize(10).setTextColor(0).setFont('helvetica', 'bold').text('STATUT :', 14, currentY);
-        if(remark.status === 'Terminée') doc.setTextColor(16, 185, 129);
-        else if(remark.status === 'En cours') doc.setTextColor(59, 130, 246);
-        else if(remark.status === 'Rejetée') doc.setTextColor(239, 68, 68);
-        else doc.setTextColor(245, 158, 11);
-        doc.text(remark.status.toUpperCase(), 35, currentY);
+        doc.setFontSize(14).setFont('helvetica', 'bold').setTextColor(37, 99, 235).text(`${i + 1}. ${remark.title}`, 14, 20);
+        doc.setFontSize(10).setTextColor(0).setFont('helvetica', 'normal');
         
-        // Catégorie à droite sur la même ligne
-        doc.setTextColor(0).setFont('helvetica', 'bold').text('| CATÉGORIE :', 80, currentY);
-        doc.setFont('helvetica', 'normal').text(cleanText(remark.category), 110, currentY);
-        
-        // --- BLOC DÉCLARANT ---
+        let currentY = 30;
+        doc.text(`Statut: ${remark.status} | Catégorie: ${remark.category}`, 14, currentY);
         currentY += 10;
-        doc.setTextColor(0).setFont('helvetica', 'bold').text('Déclarant :', 14, currentY);
-        doc.setFont('helvetica', 'normal').text(remark.name, 40, currentY);
-        
-        // Email et Téléphone juste sous le nom
-        currentY += 5;
-        doc.setFontSize(9).setTextColor(100);
-        doc.text(`Email : ${remark.email || 'N/A'}  |  Tél : ${remark.phone || 'N/A'}`, 40, currentY);
-        
-        // Description
-        currentY += 12;
-        doc.setFontSize(10).setFont('helvetica', 'bold').text('Description du déclarant :', 14, currentY);
-        currentY += 6;
+        doc.setFont('helvetica', 'bold').text("Description:", 14, currentY);
         doc.setFont('helvetica', 'normal');
-        const descLines = doc.splitTextToSize(remark.description || "Aucune description fournie.", 180);
-        doc.text(descLines, 14, currentY);
-        currentY += (descLines.length * 5) + 8;
-
-        // --- BLOC SUIVI ADMINISTRATIF ---
-        doc.setDrawColor(230);
-        doc.setFillColor(250, 251, 252);
-        
-        // Calcul de la hauteur dynamique pour les notes admin
-        const noteText = remark.adminNotes || "Aucune note enregistrée.";
-        const noteLines = doc.splitTextToSize(noteText, 140);
-        const rectHeight = 15 + (noteLines.length * 5);
-        
-        doc.roundedRect(14, currentY, pageWidth - 28, rectHeight, 2, 2, 'FD');
-        
-        let adminY = currentY + 7;
-        doc.setFont('helvetica', 'bold').text('Assigné à :', 18, adminY);
-        doc.setFont('helvetica', 'normal').text(remark.assignedTo || "Non assigné", 45, adminY);
-        
-        adminY += 7;
-        doc.setFont('helvetica', 'bold').text('Notes admin :', 18, adminY);
-        doc.setFont('helvetica', 'normal').text(noteLines, 45, adminY);
-        
-        currentY += rectHeight + 10;
+        const desc = doc.splitTextToSize(remark.description || "Pas de description", 180);
+        doc.text(desc, 14, currentY + 5);
+        currentY += (desc.length * 5) + 15;
 
         // PHOTO COMPRESSÉE
         if (remark.image) {
@@ -801,21 +701,14 @@ async function exportPDF() {
                 }
             } catch (e) { console.error("Erreur image index " + i, e); }
         }
-
-        // Localisation en bas
-        if (remark.location) {
-            if (currentY > 285) { doc.addPage(); currentY = 25; }
-            const loc = `${remark.location.latitude},${remark.location.longitude}`;
-            doc.setFontSize(9).setFont('helvetica', 'italic').setTextColor(37, 99, 235);
-            doc.text(`Localisation Maps : ${loc}`, 14, currentY, {
-                url: `https://www.google.com/maps?q=${loc}`
-            });
-        }
     }
+
+
+}
     
     const dateForFilename = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
     doc.save(`export-remarques-citoyennes-${dateForFilename}.pdf`);
-};
+
 
 
 /* ============================================================
