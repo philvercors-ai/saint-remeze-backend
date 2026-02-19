@@ -786,19 +786,20 @@ async function exportPDF() {
         
         currentY += rectHeight + 10;
 
-        // Photo
+        // PHOTO COMPRESSÉE
         if (remark.image) {
             try {
-                const imgProps = doc.getImageProperties(remark.image);
-                const maxW = 100, maxH = 70;
-                const ratio = Math.min(maxW / imgProps.width, maxH / imgProps.height);
-                const w = imgProps.width * ratio, h = imgProps.height * ratio;
-
-                if (currentY + h > 275) { doc.addPage(); currentY = 25; }
-                const xPos = (pageWidth - w) / 2;
-                doc.addImage(remark.image, imgProps.fileType, xPos, currentY, w, h);
-                currentY += h + 15;
-            } catch (e) { console.error('Erreur image detail:', e); }
+                // Compression "on-the-fly" avant ajout au PDF
+                const compressedImg = await compressImageData(remark.image, 800, 0.5);
+                if (compressedImg) {
+                    const imgProps = doc.getImageProperties(compressedImg);
+                    const maxW = 120;
+                    const h = (imgProps.height * maxW) / imgProps.width;
+                    
+                    if (currentY + h > 280) { doc.addPage(); currentY = 20; }
+                    doc.addImage(compressedImg, 'JPEG', 14, currentY, maxW, h);
+                }
+            } catch (e) { console.error("Erreur image index " + i, e); }
         }
 
         // Localisation en bas
