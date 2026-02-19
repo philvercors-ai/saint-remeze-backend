@@ -574,14 +574,82 @@ function exportCSV() {
 
 async function exportPDF() {
     const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
+    const doc = new jsPDF({ compress: true }); // ✅ Compression activée
     const pageWidth = doc.internal.pageSize.getWidth();
-    let categoryStats = {}; 
 
     const cleanText = (str) => {
         if (!str) return "";
         return str.replace(/[^\p{L}\p{N}\s,.'\-\/]/gu, '').trim();
     };
+
+    // ===== FONCTION DE CRÉATION DE GRAPHIQUE =====
+    async function createChartImage(type, labels, data, colors) {
+        return new Promise((resolve) => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 400;
+            canvas.height = 400;
+            const ctx = canvas.getContext('2d');
+            
+            new Chart(ctx, {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        data: data,
+                        backgroundColor: colors,
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: false,
+                    animation: false,
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: 'bottom',
+                            labels: { font: { size: 12 }, padding: 10 }
+                        }
+                    }
+                }
+            });
+            
+            setTimeout(() => {
+                resolve(canvas.toDataURL('image/png', 0.8)); // ✅ Qualité 0.8 pour compression
+            }, 100);
+        });
+    }
+
+    // ===== FONCTION DE GÉNÉRATION DE COULEURS =====
+    function generateColors(count) {
+        const colors = [
+            '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6',
+            '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+            '#06b6d4', '#a855f7', '#eab308', '#22c55e', '#f43f5e'
+        ];
+        // Si besoin de plus de couleurs que disponibles, générer aléatoirement
+        while (colors.length < count) {
+            const hue = Math.floor(Math.random() * 360);
+            colors.push(`hsl(${hue}, 70%, 60%)`);
+        }
+        return colors.slice(0, count);
+    }
+
+    // ===== CALCUL DES STATS AVANT TOUT =====
+    const stats = {
+        total: allRemarks.length,
+        enAttente: allRemarks.filter(r => r.status === 'En attente').length,
+        enCours: allRemarks.filter(r => r.status === 'En cours').length,
+        terminees: allRemarks.filter(r => r.status === 'Terminée').length,
+        rejetees: allRemarks.filter(r => r.status === 'Rejetée').length
+    };
+
+    // Calcul des catégories
+    const categoryStats = {};
+    allRemarks.forEach(r => {
+        const cat = cleanText(r.category);
+        if (cat) categoryStats[cat] = (categoryStats[cat] || 0) + 1;
+    });
 
     // ===== PAGE 1 - SYNTHÈSE =====
     try {
@@ -608,14 +676,6 @@ async function exportPDF() {
     
     doc.setDrawColor(226, 232, 240).line(14, 45, pageWidth - 14, 45);
 
-    const stats = {
-        total: allRemarks.length,
-        enAttente: allRemarks.filter(r => r.status === 'En attente').length,
-        enCours: allRemarks.filter(r => r.status === 'En cours').length,
-        terminees: allRemarks.filter(r => r.status === 'Terminée').length,
-        rejetees: allRemarks.filter(r => r.status === 'Rejetée').length
-    };
-    
     doc.setTextColor(0).setFontSize(14).setFont('helvetica', 'bold').text('Statistiques globales', 14, 55);
     doc.setFontSize(11).setFont('helvetica', 'normal');
     doc.text(`Total des signalements : ${stats.total}`, 14, 63);
@@ -627,60 +687,31 @@ async function exportPDF() {
     doc.text('Répartition par statut', 14, 83);
     doc.text('Répartition par catégorie', 110, 83);
     
+    // ===== CRÉATION DES DEUX GRAPHIQUES =====
     try {
-        const statusChart = await createChartImage('pie', ['En attente', 'En cours', 'Terminées', 'Rejetées'], 
-            [stats.enAttente, stats.enCours, stats.terminees, stats.rejetees], ['#f59e0b', '#3b82f6', '#10b981', '#ef4444']);
+        // Graphique statut (gauche)
+        const statusChart = await createChartImage(
+            'pie', 
+            ['En attente', 'En cours', 'Terminées', 'Rejetées'], 
+            [stats.enAttente, stats.enCours, stats.terminees, stats.rejetees], 
+            ['#f59e0b', '#3b82f6', '#10b981', '#ef4444']
+        );
         doc.addImage(statusChart, 'PNG', 14, 88, 80, 80);
         
-        allRemarks.forEach(r => {
-            const cat = cleanText(r.category);
-            categoryStats[cat] = (categoryStats[cat] || 0) + 1;
-        });
-
-      async function createChartImage(type, labels, data, colors) {
-    return new Promise((resolve) => {
-        const canvas = document.createElement('canvas');
-        canvas.width = 400;
-        canvas.height = 400;
-        const ctx = canvas.getContext('2d');
-        
-        new Chart(ctx, {
-            type: type,
-            data: {
-                labels: labels,
-                datasets: [{
-                    data: data,
-                    backgroundColor: colors,
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                responsive: false,
-                animation: false, // 👈 Bloque l'animation pour le PDF
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom',
-                        labels: { font: { size: 12 }, padding: 10 }
-                    }
-                }
-            }
-        });
-        
-        // Petit délai de sécurité pour le rendu du canvas
-        setTimeout(() => {
-            resolve(canvas.toDataURL('image/png'));
-        }, 100);
-    });
-}  
-        
+        // Graphique catégories (droite)
         const catLabels = Object.keys(categoryStats);
         if (catLabels.length > 0) {
-            const catChart = await createChartImage('pie', catLabels, Object.values(categoryStats), generateColors(catLabels.length));
+            const catChart = await createChartImage(
+                'pie', 
+                catLabels, 
+                Object.values(categoryStats), 
+                generateColors(catLabels.length)
+            );
             doc.addImage(catChart, 'PNG', 110, 88, 80, 80);
         }
-    } catch (e) { console.error('Erreur graphiques:', e); }
+    } catch (e) { 
+        console.error('Erreur graphiques:', e); 
+    }
 
     doc.setFontSize(12).setFont('helvetica', 'bold').text('Répartition par catégories :', 14, 175);
     let catY = 182;
