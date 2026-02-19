@@ -575,10 +575,12 @@ function exportCSV() {
 // ============================================================
 // PARTIE 3 - EXPORT PDF OPTIMISÉ (COMPRESSION < 5MO)
 // ============================================================
+// ============================================================
+// PARTIE 3 - EXPORT PDF OPTIMISÉ (CORRIGÉ)
+// ============================================================
 
 async function exportPDF() {
     const { jsPDF } = window.jspdf;
-    // Utilisation de la compression native de jsPDF
     const doc = new jsPDF({ compress: true }); 
     const pageWidth = doc.internal.pageSize.getWidth();
 
@@ -592,18 +594,14 @@ async function exportPDF() {
                 const canvas = document.createElement('canvas');
                 let width = img.width;
                 let height = img.height;
-
-                // Redimensionnement proportionnel
                 if (width > maxWidth) {
                     height = (maxWidth / width) * height;
                     width = maxWidth;
                 }
-
                 canvas.width = width;
                 canvas.height = height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(img, 0, 0, width, height);
-                // Export en JPEG (beaucoup plus léger que PNG pour les photos)
                 resolve(canvas.toDataURL('image/jpeg', quality));
             };
             img.onerror = () => resolve(null);
@@ -629,7 +627,7 @@ async function exportPDF() {
                 options: { responsive: false, animation: false }
             });
             setTimeout(() => {
-                resolve(canvas.toDataURL('image/jpeg', 0.6)); // JPEG pour le poids
+                resolve(canvas.toDataURL('image/jpeg', 0.6));
             }, 100);
         });
     }
@@ -652,7 +650,6 @@ async function exportPDF() {
     doc.setFontSize(12).setFont('helvetica', 'normal').text(`Saint-Remèze - ${new Date().toLocaleDateString('fr-FR')}`, 14, 35);
     doc.setDrawColor(200).line(14, 40, pageWidth - 14, 40);
 
-    // Graphiques de synthèse (compressés)
     try {
         const statusChart = await createChartImage('pie', ['Attente', 'Cours', 'Terminée', 'Rejetée'], 
             [allRemarks.filter(r => r.status === 'En attente').length, 
@@ -686,16 +683,13 @@ async function exportPDF() {
         doc.text(desc, 14, currentY + 5);
         currentY += (desc.length * 5) + 15;
 
-        // PHOTO COMPRESSÉE
         if (remark.image) {
             try {
-                // Compression "on-the-fly" avant ajout au PDF
                 const compressedImg = await compressImageData(remark.image, 800, 0.5);
                 if (compressedImg) {
                     const imgProps = doc.getImageProperties(compressedImg);
                     const maxW = 120;
                     const h = (imgProps.height * maxW) / imgProps.width;
-                    
                     if (currentY + h > 280) { doc.addPage(); currentY = 20; }
                     doc.addImage(compressedImg, 'JPEG', 14, currentY, maxW, h);
                 }
@@ -703,23 +697,8 @@ async function exportPDF() {
         }
     }
 
-
+    // Sauvegarde finale (Correction de la variable et de la portée)
+    const now = new Date();
+    const dateStr = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
+    doc.save(`export-saint-remeze-${dateStr}.pdf`);
 }
-    
-    const dateForFilename = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
-    doc.save(`export-remarques-citoyennes-${dateForFilename}.pdf`);
-
-
-
-/* ============================================================
-   PARTIE 4 - FERMETURE SUIT CI-DESSOUS
-   Copiez le contenu de admin-partie4.html ici
-   ============================================================ */
-// ============================================================
-// PARTIE 4 - FERMETURE DU JAVASCRIPT ET HTML
-// À copier APRÈS la partie 3 dans admin.html
-// ============================================================
-
-    </script>
-</body>
-</html>
