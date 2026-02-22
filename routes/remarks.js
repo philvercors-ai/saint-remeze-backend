@@ -36,14 +36,61 @@ const upload = multer({
   }
 });
 
-// GET toutes les remarques - Renvoie tableau direct
+// ===== ROUTE ADMIN - TOUTES LES REMARQUES =====
+router.get('/admin/all', optionalAuth, async (req, res) => {
+  try {
+    console.log('👑 GET /api/remarks/admin/all');
+    const remarks = await Remark.find().sort({ createdAt: -1 });
+    console.log('✅ Remarques admin:', remarks.length);
+    
+    res.json({
+      success: true,
+      count: remarks.length,
+      remarks: remarks
+    });
+  } catch (error) {
+    console.error('❌ Erreur admin/all:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// ===== ROUTE ADMIN - STATS =====
+router.get('/admin/stats', optionalAuth, async (req, res) => {
+  try {
+    console.log('📊 GET /api/remarks/admin/stats');
+    const remarks = await Remark.find();
+    
+    const stats = {
+      total: remarks.length,
+      byStatus: {
+        'En attente': remarks.filter(r => r.status === 'En attente').length,
+        'En cours': remarks.filter(r => r.status === 'En cours').length,
+        'Terminée': remarks.filter(r => r.status === 'Terminée').length,
+        'Rejetée': remarks.filter(r => r.status === 'Rejetée').length
+      },
+      byCategory: {}
+    };
+    
+    // Compter par catégorie
+    remarks.forEach(r => {
+      stats.byCategory[r.category] = (stats.byCategory[r.category] || 0) + 1;
+    });
+    
+    console.log('✅ Stats calculées');
+    res.json({ success: true, stats });
+  } catch (error) {
+    console.error('❌ Erreur stats:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// GET toutes les remarques (citoyens)
 router.get('/', optionalAuth, async (req, res) => {
   try {
     console.log('📋 GET /api/remarks');
     const remarks = await Remark.find().sort({ createdAt: -1 });
     console.log('✅ Remarques trouvées:', remarks.length);
     
-    // IMPORTANT : Tableau direct pour le frontend
     res.json(remarks);
   } catch (error) {
     console.error('❌ Erreur GET remarks:', error);
@@ -51,12 +98,11 @@ router.get('/', optionalAuth, async (req, res) => {
   }
 });
 
-// GET remarque par ID - IMPORTANT pour la page détail
+// GET remarque par ID
 router.get('/:id', optionalAuth, async (req, res) => {
   try {
     console.log('📋 GET /api/remarks/' + req.params.id);
     
-    // Vérifier que l'ID est valide
     if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
       console.log('❌ ID invalide:', req.params.id);
       return res.status(400).json({ success: false, message: 'ID invalide' });
@@ -148,6 +194,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
 router.put('/:id', optionalAuth, async (req, res) => {
   try {
     console.log('📝 PUT /api/remarks/' + req.params.id);
+    console.log('   Update:', req.body);
     
     const remark = await Remark.findByIdAndUpdate(
       req.params.id,
