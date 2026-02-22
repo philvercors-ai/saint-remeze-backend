@@ -1,0 +1,12 @@
+// Route racine pour vérifier que le serveur fonctionne
+app.get('/', (req, res) => {
+  res.json({
+    success: true,
+    message: 'API Saint-Remèze v7.2.3',
+    endpoints: {
+      auth: '/api/auth',
+      remarks: '/api/remarks',
+      admin: '/admin.html'
+    }
+  });
+});

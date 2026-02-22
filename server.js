@@ -9,6 +9,7 @@ const app = express();
 
 // ===== CONFIGURATION CORS =====
 const allowedOrigins = [
+  'saint-remeze-frontend.vercel.app
   'http://localhost:3000',
   'http://localhost:10000',
   process.env.CORS_ORIGIN,
