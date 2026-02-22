@@ -15,7 +15,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static('public'));
 
-// Route racine - IMPORTANT pour éviter "Cannot GET /"
+// Route racine
 app.get('/', (req, res) => {
   res.json({
     success: true,
@@ -25,9 +25,15 @@ app.get('/', (req, res) => {
     endpoints: {
       remarks: '/api/remarks',
       auth: '/api/auth',
-      admin: '/admin.html'
+      admin: '/admin.html',
+      dashboard: '/admin'
     }
   });
+});
+
+// Route admin - Redirection vers admin.html
+app.get('/admin', (req, res) => {
+  res.redirect('/admin.html');
 });
 
 // Routes API
