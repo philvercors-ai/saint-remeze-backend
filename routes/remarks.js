@@ -50,7 +50,7 @@ router.get('/admin/all', optionalAuth, async (req, res) => {
   }
 });
 
-// DELETE /admin/:id (avec suppression Cloudinary)
+// DELETE /admin/:id
 router.delete('/admin/:id', optionalAuth, async (req, res) => {
   try {
     console.log('🗑️  DELETE /api/remarks/admin/' + req.params.id);
@@ -74,7 +74,6 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
       });
     }
 
-    // Supprimer photo de Cloudinary
     if (remark.cloudinaryPublicId) {
       try {
         await cloudinary.uploader.destroy(remark.cloudinaryPublicId);
@@ -132,10 +131,11 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// POST / (Upload Cloudinary)
-router.post('/', upload.single('photo'), async (req, res) => {
+// ✅ POST / (CORRECTION : optionalAuth AVANT upload.single)
+router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
   try {
     console.log('📥 POST /api/remarks');
+    console.log('   User authentifié:', req.user ? req.user.userId : 'Aucun (anonyme)');
     console.log('   Body:', req.body);
     console.log('   File:', req.file ? 'Photo uploadée sur Cloudinary' : 'Pas de photo');
 
@@ -155,15 +155,18 @@ router.post('/', upload.single('photo'), async (req, res) => {
       status: 'En attente'
     };
 
+    // ✅ CORRECTION : Association user
     if (req.user && req.user.userId) {
       remarkData.user = req.user.userId;
       console.log('👤 Remarque associée au user:', req.user.userId);
+    } else {
+      console.log('⚠️  Pas de user authentifié, remarque anonyme');
     }
 
     // Photo uploadée sur Cloudinary
     if (req.file) {
-      remarkData.photoUrl = req.file.path; // URL Cloudinary
-      remarkData.cloudinaryPublicId = req.file.filename; // Pour suppression future
+      remarkData.photoUrl = req.file.path;
+      remarkData.cloudinaryPublicId = req.file.filename;
       console.log('📸 Photo Cloudinary URL:', req.file.path);
       console.log('📸 Public ID:', req.file.filename);
     }
@@ -178,9 +181,12 @@ router.post('/', upload.single('photo'), async (req, res) => {
 
     const remark = new Remark(remarkData);
     await remark.save();
+    
+    // ✅ Populate user pour le retour
     await remark.populate('user', 'name email');
 
     console.log('✅ Remarque créée:', remark._id);
+    console.log('   User associé:', remark.user ? remark.user.name : 'Aucun');
 
     res.status(201).json({ 
       success: true, 
@@ -221,7 +227,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// DELETE /:id (citoyen)
+// DELETE /:id
 router.delete('/:id', optionalAuth, async (req, res) => {
   try {
     console.log('🗑️  DELETE /api/remarks/' + req.params.id);
