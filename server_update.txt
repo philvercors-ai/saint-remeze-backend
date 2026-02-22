@@ -1,2 +1,32 @@
-// Ajouter après les autres app.use() et avant les routes :
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// ===== AJOUTER DANS server.js =====
+
+// Après les autres routes (ligne ~40)
+app.use('/api/archive', require('./routes/archive'));
+
+// ===== TÂCHE CRON : Archivage automatique quotidien =====
+// Optionnel : Si vous voulez archiver automatiquement tous les jours
+
+const Remark = require('./models/Remark');
+
+// Lancer archivage au démarrage
+(async () => {
+  try {
+    const result = await Remark.autoArchive();
+    console.log('🗄️  Archivage auto au démarrage:', result.modifiedCount, 'remarque(s)');
+  } catch (err) {
+    console.error('❌ Erreur archivage auto:', err);
+  }
+})();
+
+// Archivage quotidien (à 2h du matin)
+setInterval(async () => {
+  const now = new Date();
+  if (now.getHours() === 2 && now.getMinutes() === 0) {
+    try {
+      const result = await Remark.autoArchive();
+      console.log('🗄️  Archivage auto quotidien:', result.modifiedCount, 'remarque(s)');
+    } catch (err) {
+      console.error('❌ Erreur archivage auto:', err);
+    }
+  }
+}, 60000); // Vérifier chaque minute

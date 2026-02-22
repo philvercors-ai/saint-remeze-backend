@@ -1,0 +1,934 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Administration - Saint-Remèze</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: #1e293b; }
+
+        #loginSection { height: 100vh; display: flex; align-items: center; justify-content: center; background: #1e293b; }
+        .login-card { background: white; padding: 2rem; border-radius: 1rem; width: 100%; max-width: 400px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
+        
+        .header { background: white; padding: 1rem 2rem; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; z-index: 10; }
+        .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+        
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .stat-card { background: white; padding: 1.5rem; border-radius: 0.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); text-align: center; }
+        .stat-card h3 { font-size: 2rem; margin-bottom: 0.5rem; }
+
+        .tabs { display: flex; gap: 0.5rem; background: white; padding: 0.5rem; border-radius: 8px; margin-bottom: 1.5rem; }
+        .tab-btn { flex: 1; padding: 0.75rem 1rem; border: none; background: transparent; border-radius: 6px; cursor: pointer; font-weight: 600; transition: all 0.2s; color: #64748b; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-btn:hover { background: #e2e8f0; }
+        .tab-btn.active:hover { background: #1d4ed8; }
+
+        .archive-info { background: #eff6ff; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; border-left: 4px solid var(--primary); }
+        .archive-info p { margin: 0 0 0.5rem 0; font-size: 14px; color: #1e40af; }
+
+        .filters { background: white; padding: 1rem; border-radius: 0.75rem; margin-bottom: 1.5rem; display: flex; gap: 1rem; flex-wrap: wrap; align-items: center; }
+        
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 0.75rem; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        th, td { padding: 1rem; text-align: left; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; font-weight: 600; }
+
+        .btn { padding: 0.6rem 1.2rem; border: none; border-radius: 0.5rem; cursor: pointer; font-weight: 600; transition: 0.2s; text-decoration: none; display: inline-block; font-size: 14px; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-success { background: var(--success); color: white; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-secondary { background: #64748b; color: white; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); align-items: center; justify-content: center; z-index: 100; padding: 1rem; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; padding: 2rem; border-radius: 1rem; width: 100%; max-width: 600px; max-height: 90vh; overflow-y: auto; }
+
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; margin-bottom: 0.5rem; font-weight: 600; }
+        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 0.75rem; border: 1px solid #cbd5e1; border-radius: 0.5rem; font-family: inherit; }
+    </style>
+</head>
+<body>
+
+    <div id="loginSection">
+        <div class="login-card">
+            <h2 style="margin-bottom: 1.5rem; text-align: center;">Administration</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="loginEmail" value="admin@saint-remeze.fr" required>
+                </div>
+                <div class="form-group">
+                    <label>Mot de passe</label>
+                    <input type="password" id="loginPassword" value="admin123" required>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%;">Se connecter</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="adminSection" style="display: none;">
+        <div class="header">
+            <div><h1 style="font-size: 1.25rem;">Saint-Remèze - Gestion</h1></div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn btn-success" onclick="exportPDF()">📄 PDF</button>
+                <button class="btn btn-secondary" onclick="exportCSV()">📊 CSV</button>
+                <button class="btn btn-danger" onclick="logout()">Déconnexion</button>
+            </div>
+        </div>
+
+        <div class="container">
+            <div class="stats-grid">
+                <div class="stat-card"><h3 id="statTotal">0</h3><p>Total</p></div>
+                <div class="stat-card"><h3 id="statAttente" style="color: var(--warning);">0</h3><p>En attente</p></div>
+                <div class="stat-card"><h3 id="statCours" style="color: var(--primary);">0</h3><p>En cours</p></div>
+                <div class="stat-card"><h3 id="statFini" style="color: var(--success);">0</h3><p>Terminées</p></div>
+            </div>
+
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('active')" id="tabActive">
+                    📋 Actives (<span id="countActive">0</span>)
+                </button>
+                <button class="tab-btn" onclick="switchTab('archived')" id="tabArchived">
+                    🗄️ Archives (<span id="countArchived">0</span>)
+                </button>
+            </div>
+
+            <div id="archiveInfo" class="archive-info" style="display: none;">
+                <p>📊 <span id="archivableCount">0</span> remarque(s) archivable(s) | <span id="deletableCount">0</span> supprimable(s) (>1 an)</p>
+                <button class="btn btn-primary" onclick="runAutoArchive()" style="font-size: 13px;">
+                    🗄️ Archiver automatiquement
+                </button>
+            </div>
+
+            <div class="filters">
+                <input type="text" id="search" placeholder="Rechercher..." onkeyup="filterTable()" style="flex: 1; min-width: 200px; padding: 0.6rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                <select id="statusFilter" onchange="filterTable()" style="padding: 0.6rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                    <option value="">Tous les statuts</option>
+                    <option value="En attente">En attente</option>
+                    <option value="En cours">En cours</option>
+                    <option value="Terminée">Terminée</option>
+                    <option value="Rejetée">Rejetée</option>
+                </select>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Citoyen</th>
+                        <th>Titre</th>
+                        <th>Statut</th>
+                        <th id="headerArchived" style="display: none;">Archivée</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody id="tableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle" style="margin-bottom: 0.5rem;">Détails</h2>
+            <p id="modalCategory" style="color: #64748b; margin-bottom: 1rem; font-size: 14px;"></p>
+            
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 0.5rem;">📋 Informations</h3>
+                    <div id="remarkInfo" style="font-size: 13px; color: #475569;"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="font-weight: 600;">Description</label>
+                    <div id="remarkDescription" style="padding: 0.75rem; background: #f8fafc; border-radius: 6px; min-height: 60px; font-size: 14px; color: #334155; line-height: 1.6;"></div>
+                </div>
+                
+                <div id="photoSection" style="display: none; margin-bottom: 1rem;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">📸 Photo</label>
+                    <div id="imagePreview" style="border-radius: 8px; overflow: hidden;"></div>
+                </div>
+                
+                <div id="locationSection" style="display: none; margin-bottom: 1rem;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">📍 Localisation</label>
+                    <div id="remarkLocation" style="padding: 0.75rem; background: #f0f9ff; border-radius: 6px; font-size: 13px; font-family: monospace;"></div>
+                </div>
+                
+                <div style="border-top: 2px solid #e2e8f0; padding-top: 1rem; margin-top: 1rem;">
+                    <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 1rem;">⚙️ Gestion</h3>
+                    
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <select id="editStatus">
+                            <option value="En attente">En attente</option>
+                            <option value="En cours">En cours</option>
+                            <option value="Terminée">Terminée</option>
+                            <option value="Rejetée">Rejetée</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Assigné à</label>
+                        <input type="text" id="editAssign" placeholder="Nom du responsable">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes Admin</label>
+                        <textarea id="editNotes" rows="3" placeholder="Notes internes..."></textarea>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-primary" onclick="saveEdit()">💾 Enregistrer</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteRemark()">🗑️ Supprimer</button>
+                    <button type="button" class="btn" onclick="closeModal()" style="background: #e2e8f0; margin-left: auto;">Fermer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'https://saint-remeze-backend.onrender.com';
+        let allData = [];
+        let archivedData = [];
+        let currentTab = 'active';
+        let stats = {};
+
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            try {
+                const res = await fetch(`${API_URL}/api/auth/login`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({email, password})
+                });
+                const data = await res.json();
+                if(data.success && data.data.user.role === 'admin') {
+                    localStorage.setItem('adminToken', data.data.token);
+                    initDashboard();
+                } else { alert("Accès refusé."); }
+            } catch(err) { alert("Erreur de connexion."); }
+        });
+
+        function logout() { localStorage.removeItem('adminToken'); location.reload(); }
+
+        async function initDashboard() {
+            const token = localStorage.getItem('adminToken');
+            if(!token) return;
+            document.getElementById('loginSection').style.display = 'none';
+            document.getElementById('adminSection').style.display = 'block';
+            await loadData();
+        }
+
+        async function loadData() {
+            const token = localStorage.getItem('adminToken');
+            try {
+                const resActive = await fetch(`${API_URL}/api/remarks/admin/all`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const jsonActive = await resActive.json();
+                allData = jsonActive.data || [];
+                
+                const resArchived = await fetch(`${API_URL}/api/archive/archived`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const jsonArchived = await resArchived.json();
+                archivedData = jsonArchived.data || [];
+                
+                const resStats = await fetch(`${API_URL}/api/archive/stats`, {
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const jsonStats = await resStats.json();
+                stats = jsonStats.stats || {};
+                
+                updateUI();
+            } catch(e) { 
+                console.error('Erreur chargement:', e); 
+            }
+        }
+
+        function updateUI() {
+            document.getElementById('statTotal').innerText = allData.length;
+            document.getElementById('statAttente').innerText = allData.filter(d => d.status === 'En attente').length;
+            document.getElementById('statCours').innerText = allData.filter(d => d.status === 'En cours').length;
+            document.getElementById('statFini').innerText = allData.filter(d => d.status === 'Terminée').length;
+            
+            document.getElementById('countActive').innerText = allData.length;
+            document.getElementById('countArchived').innerText = archivedData.length;
+            
+            if (stats.archivable !== undefined) {
+                document.getElementById('archivableCount').innerText = stats.archivable;
+                document.getElementById('deletableCount').innerText = stats.deletable;
+            }
+            
+            if (currentTab === 'active') {
+                renderTable(allData, false);
+            } else {
+                renderTable(archivedData, true);
+            }
+        }
+
+        function renderTable(data, isArchived = false) {
+            const body = document.getElementById('tableBody');
+            document.getElementById('headerArchived').style.display = isArchived ? '' : 'none';
+            
+            body.innerHTML = data.map(r => {
+                const userName = r.user?.name || r.name || 'Anonyme';
+                const createdDate = new Date(r.createdAt).toLocaleDateString('fr-FR');
+                
+                let archiveCell = '';
+                if (isArchived && r.archivedAt) {
+                    const daysSince = Math.floor((Date.now() - new Date(r.archivedAt)) / (1000*60*60*24));
+                    archiveCell = `<td>${daysSince}j</td>`;
+                }
+                
+                let buttons = '';
+                if (isArchived) {
+                    if (r.isDeletable) {
+                        buttons = `
+                            <button class="btn btn-danger" style="padding:4px 8px; font-size:12px;" onclick="deleteRemark('${r._id}')">🗑️</button>
+                            <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="unarchiveRemark('${r._id}')">📤</button>
+                        `;
+                    } else {
+                        buttons = `
+                            <button class="btn" style="padding:4px 8px; font-size:12px; background:#cbd5e1; cursor:not-allowed;" disabled>🗑️ <1an</button>
+                            <button class="btn btn-secondary" style="padding:4px 8px; font-size:12px;" onclick="unarchiveRemark('${r._id}')">📤</button>
+                        `;
+                    }
+                } else {
+                    buttons = `<button class="btn btn-primary" style="padding:4px 8px;" onclick="openEdit('${r._id}')">Voir</button>`;
+                    if (r.isArchivable) {
+                        buttons += ` <button class="btn" style="padding:4px 8px; font-size:12px; background:#f59e0b; color:white;" onclick="archiveRemark('${r._id}')">🗄️</button>`;
+                    }
+                }
+                
+                return `
+                    <tr>
+                        <td>${createdDate}</td>
+                        <td>${userName}</td>
+                        <td>${r.title}</td>
+                        <td><span style="font-weight:bold; color:${r.status === 'Terminée' ? 'green' : (r.status === 'Rejetée' ? 'red' : 'orange')}">${r.status}</span></td>
+                        ${archiveCell}
+                        <td>${buttons}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function filterTable() {
+            const s = document.getElementById('search').value.toLowerCase();
+            const f = document.getElementById('statusFilter').value;
+            const data = currentTab === 'active' ? allData : archivedData;
+            const filtered = data.filter(r => 
+                (r.title.toLowerCase().includes(s) || (r.user?.name || r.name || '').toLowerCase().includes(s)) &&
+                (f === "" || r.status === f)
+            );
+            renderTable(filtered, currentTab === 'archived');
+        }
+
+        function switchTab(tab) {
+            currentTab = tab;
+            document.getElementById('tabActive').classList.toggle('active', tab === 'active');
+            document.getElementById('tabArchived').classList.toggle('active', tab === 'archived');
+            document.getElementById('archiveInfo').style.display = tab === 'archived' ? 'block' : 'none';
+            updateUI();
+        }
+
+        function openEdit(id) {
+            const r = (currentTab === 'active' ? allData : archivedData).find(x => x._id === id);
+            if (!r) return;
+            
+            document.getElementById('modalTitle').innerText = r.title;
+            document.getElementById('modalCategory').innerText = `Catégorie: ${r.category}`;
+            
+            const userName = r.user?.name || r.name || 'Anonyme';
+            const userEmail = r.user?.email || r.email || 'N/A';
+            const createdDate = new Date(r.createdAt).toLocaleDateString('fr-FR', {
+                day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit'
+            });
+            
+            document.getElementById('remarkInfo').innerHTML = `
+                <div style="margin-bottom: 6px;"><strong>Citoyen:</strong> ${userName}</div>
+                <div style="margin-bottom: 6px;"><strong>Email:</strong> ${userEmail}</div>
+                <div><strong>Date:</strong> ${createdDate}</div>
+            `;
+            
+            document.getElementById('remarkDescription').innerText = r.description || 'Pas de description';
+            
+            const photoSection = document.getElementById('photoSection');
+            const photoUrl = r.photoUrl || r.image;
+            if (photoUrl) {
+                const fullPhotoUrl = photoUrl.startsWith('http') ? photoUrl : `${API_URL}${photoUrl}`;
+                document.getElementById('imagePreview').innerHTML = `
+                    <img src="${fullPhotoUrl}" 
+                         style="max-width: 100%; height: auto; display: block; border-radius: 8px;"
+                         onerror="this.parentElement.innerHTML='<p style=\\'color:#64748b;padding:1rem;text-align:center;\\'>Photo non disponible</p>'">
+                `;
+                photoSection.style.display = 'block';
+            } else {
+                photoSection.style.display = 'none';
+            }
+            
+            const locationSection = document.getElementById('locationSection');
+            if (r.location && r.location.coordinates && r.location.coordinates.length === 2) {
+                const [lng, lat] = r.location.coordinates;
+                document.getElementById('remarkLocation').innerHTML = `
+                    <div style="margin-bottom: 8px;">
+                        Latitude: ${lat.toFixed(6)}<br>
+                        Longitude: ${lng.toFixed(6)}
+                    </div>
+                    <a href="https://www.google.com/maps?q=${lat},${lng}" 
+                       target="_blank" 
+                       style="color: #2563eb; text-decoration: none; font-weight: 600;">
+                        🗺️ Voir sur Google Maps →
+                    </a>
+                `;
+                locationSection.style.display = 'block';
+            } else {
+                locationSection.style.display = 'none';
+            }
+            
+            document.getElementById('editId').value = r._id;
+            document.getElementById('editStatus').value = r.status;
+            document.getElementById('editAssign').value = r.assignedTo || '';
+            document.getElementById('editNotes').value = r.adminNotes || '';
+            
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function closeModal() { 
+            document.getElementById('editModal').classList.remove('active'); 
+        }
+
+        async function saveEdit() {
+            const id = document.getElementById('editId').value;
+            const token = localStorage.getItem('adminToken');
+            const body = {
+                status: document.getElementById('editStatus').value,
+                assignedTo: document.getElementById('editAssign').value,
+                adminNotes: document.getElementById('editNotes').value
+            };
+            
+            try {
+                await fetch(`${API_URL}/api/remarks/${id}`, {
+                    method: 'PUT',
+                    headers: {'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`},
+                    body: JSON.stringify(body)
+                });
+                alert('✅ Modifications enregistrées');
+                closeModal();
+                loadData();
+            } catch(e) {
+                alert('❌ Erreur: ' + e.message);
+            }
+        }
+
+        async function deleteRemark() {
+            if(!confirm("⚠️ Supprimer définitivement ?")) return;
+            const id = document.getElementById('editId').value;
+            const token = localStorage.getItem('adminToken');
+            
+            try {
+                const res = await fetch(`${API_URL}/api/remarks/admin/${id}`, {
+                    method: 'DELETE',
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ Remarque supprimée');
+                    closeModal();
+                    loadData();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (e) {
+                alert('❌ Erreur: ' + e.message);
+            }
+        }
+
+        async function archiveRemark(id) {
+            if (!confirm('Archiver cette remarque ?')) return;
+            const token = localStorage.getItem('adminToken');
+            
+            try {
+                const res = await fetch(`${API_URL}/api/archive/archive/${id}`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ Remarque archivée');
+                    loadData();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (e) {
+                alert('❌ ' + e.message);
+            }
+        }
+
+        async function unarchiveRemark(id) {
+            if (!confirm('Désarchiver cette remarque ?')) return;
+            const token = localStorage.getItem('adminToken');
+            
+            try {
+                const res = await fetch(`${API_URL}/api/archive/unarchive/${id}`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('✅ Remarque désarchivée');
+                    loadData();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (e) {
+                alert('❌ ' + e.message);
+            }
+        }
+
+        async function runAutoArchive() {
+            if (!confirm('Archiver automatiquement ?')) return;
+            const token = localStorage.getItem('adminToken');
+            
+            try {
+                const res = await fetch(`${API_URL}/api/archive/auto-archive`, {
+                    method: 'POST',
+                    headers: {'Authorization': `Bearer ${token}`}
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert(`✅ ${data.count} remarque(s) archivée(s)`);
+                    loadData();
+                } else {
+                    alert('❌ ' + data.message);
+                }
+            } catch (e) {
+                alert('❌ ' + e.message);
+            }
+        }
+
+        // ===== EXPORT CSV =====
+        function exportCSV() {
+            const data = currentTab === 'active' ? allData : archivedData;
+            
+            if (data.length === 0) {
+                alert('Aucune remarque à exporter');
+                return;
+            }
+            
+            let csv = "Date,Citoyen,Email,Categorie,Titre,Statut,Description,Assigne_a,Notes_admin,Archive";
+            
+            if (currentTab === 'archived') {
+                csv += ",Jours_archives";
+            }
+            
+            csv += "\n";
+            
+            data.forEach(r => {
+                const date = new Date(r.createdAt).toLocaleDateString('fr-FR');
+                const userName = (r.user?.name || r.name || 'Anonyme').replace(/"/g, '""');
+                const userEmail = (r.user?.email || r.email || 'N/A').replace(/"/g, '""');
+                const category = (r.category || '').replace(/"/g, '""');
+                const title = (r.title || '').replace(/"/g, '""');
+                const status = (r.status || '').replace(/"/g, '""');
+                const desc = (r.description || '').replace(/(\r\n|\n|\r)/gm, ' ').replace(/"/g, '""');
+                const assigned = (r.assignedTo || '').replace(/"/g, '""');
+                const notes = (r.adminNotes || '').replace(/"/g, '""');
+                const archived = r.archived ? 'Oui' : 'Non';
+                
+                let row = `"${date}","${userName}","${userEmail}","${category}","${title}","${status}","${desc}","${assigned}","${notes}","${archived}"`;
+                
+                if (currentTab === 'archived' && r.archivedAt) {
+                    const daysSince = Math.floor((Date.now() - new Date(r.archivedAt)) / (1000*60*60*24));
+                    row += `,"${daysSince}"`;
+                }
+                
+                csv += row + "\n";
+            });
+            
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            const filename = currentTab === 'archived' 
+                ? `remarques-archives-${new Date().toISOString().split('T')[0]}.csv`
+                : `remarques-actives-${new Date().toISOString().split('T')[0]}.csv`;
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            alert(`✅ Export CSV réussi: ${data.length} remarque(s)`);
+        }
+        
+        // ===== EXPORT PDF PREMIUM =====
+        async function exportPDF() {
+            const data = currentTab === 'active' ? allData : archivedData;
+            
+            if (data.length === 0) {
+                alert('Aucune remarque à exporter');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ compress: true });
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 14;
+
+            const clean = (str) => {
+    if (!str) return "N/A";
+    // Supprimer caractères spéciaux (compatible PDF)
+    return String(str)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\x20-\x7E\xC0-\xFF]/g, '')
+        .trim();
+};
+            
+
+            
+            // Créer graphique camembert
+           async function createBeautifulPieChart(labels, chartData, colors, title) {
+    return new Promise(resolve => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 500;
+        canvas.height = 500;
+        const ctx = canvas.getContext('2d');
+        
+        const chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: chartData,
+                    backgroundColor: colors,
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            font: { 
+                                size: 14,
+                                family: 'Arial',
+                                weight: '600'
+                            },
+                            boxWidth: 22,
+                            padding: 15,
+                            color: '#1e293b',
+                            usePointStyle: true,
+                            pointStyle: 'circle'
+                        }
+                    },
+                    title: {
+                        display: true,
+                        text: title,
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        color: '#1e293b',
+                        padding: {
+                            top: 10,
+                            bottom: 18
+                        }
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                }
+            },
+            plugins: [{
+                id: 'datalabels',
+                afterDatasetsDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    chart.data.datasets.forEach((dataset, i) => {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach((element, index) => {
+                            const data = dataset.data[index];
+                            const total = dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((data / total) * 100).toFixed(0);
+                            
+                            if (percentage > 5) {
+                                ctx.fillStyle = '#ffffff';
+                                ctx.font = 'bold 18px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                                ctx.shadowBlur = 2;
+                                
+                                const position = element.tooltipPosition();
+                                ctx.fillText(percentage + '%', position.x, position.y);
+                                
+                                ctx.shadowBlur = 0;
+                            }
+                        });
+                    });
+                }
+            }]
+        });
+        
+        setTimeout(() => {
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = 500;
+            finalCanvas.height = 500;
+            const finalCtx = finalCanvas.getContext('2d');
+            
+            finalCtx.fillStyle = '#ffffff';
+            finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+            finalCtx.drawImage(canvas, 0, 0);
+            
+            const imageData = finalCanvas.toDataURL('image/png', 1.0);
+            chart.destroy();
+            resolve(imageData);
+        }, 800);
+    });
+}
+                    
+                    setTimeout(() => {
+                        const finalCanvas = document.createElement('canvas');
+                        finalCanvas.width = 400;
+                        finalCanvas.height = 400;
+                        const finalCtx = finalCanvas.getContext('2d');
+                        
+                        finalCtx.fillStyle = '#ffffff';
+                        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+                        finalCtx.drawImage(canvas, 0, 0);
+                        
+                        const imageData = finalCanvas.toDataURL('image/jpeg', 0.95);
+                        chart.destroy();
+                        resolve(imageData);
+                    }, 500);
+                };
+            
+            
+            // PAGE 1 : STATISTIQUES
+            let y = 20;
+            
+            doc.setFontSize(18).setFont('helvetica', 'bold').setTextColor(37, 99, 235);
+            doc.text("Saint-Remeze", margin, y);
+            
+            y += 6;
+            doc.setFontSize(11).setFont('helvetica', 'normal').setTextColor(100);
+            doc.text("ARDECHE", margin, y);
+            
+            y += 5;
+            doc.setDrawColor(37, 99, 235);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y, pageWidth - margin, y);
+            
+            y += 15;
+            doc.setFontSize(16).setFont('helvetica', 'bold').setTextColor(0);
+            const title = currentTab === 'archived' ? "Rapport des Remarques Archivees" : "Rapport des Remarques Actives";
+            doc.text(title, pageWidth / 2, y, { align: 'center' });
+            
+            y += 7;
+            doc.setFontSize(12).setTextColor(100);
+            doc.text("Commune de Saint-Remeze", pageWidth / 2, y, { align: 'center' });
+            
+            y += 10;
+            doc.setFontSize(9).setTextColor(0);
+            const now = new Date();
+            doc.text(`Genere le ${now.toLocaleDateString('fr-FR')} a ${now.toLocaleTimeString('fr-FR')}`, pageWidth / 2, y, { align: 'center' });
+            
+            y += 12;
+            doc.setFontSize(12).setFont('helvetica', 'bold');
+            doc.text("Statistiques globales", margin, y);
+            
+            y += 7;
+            doc.setFontSize(10).setFont('helvetica', 'normal');
+            
+            if (currentTab === 'active') {
+                doc.text(`Total des signalements actifs : ${data.length}`, margin, y);
+                y += 6;
+                doc.text(`En attente: ${data.filter(r => r.status === 'En attente').length}   En cours: ${data.filter(r => r.status === 'En cours').length}   Terminees: ${data.filter(r => r.status === 'Terminée').length}   Rejetees: ${data.filter(r => r.status === 'Rejetée').length}`, margin, y);
+            } else {
+                doc.text(`Total des remarques archivees : ${data.length}`, margin, y);
+            }
+            
+            y += 10;
+            
+            try {
+                const statusCounts = [
+                    data.filter(r => r.status === 'En attente').length,
+                    data.filter(r => r.status === 'En cours').length,
+                    data.filter(r => r.status === 'Terminée').length,
+                    data.filter(r => r.status === 'Rejetée').length
+                ];
+                const statusLabels = ['En attente', 'En cours', 'Terminee', 'Rejetee'];
+                const statusColors = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444'];
+                
+                const imgStatus = await createPieChart(statusLabels, statusCounts, statusColors);
+                doc.addImage(imgStatus, 'JPEG', margin, y, 70, 70);
+                
+                const categories = {};
+                data.forEach(r => {
+                    categories[r.category] = (categories[r.category] || 0) + 1;
+                });
+                
+                const catLabels = Object.keys(categories);
+                const catCounts = Object.values(categories);
+                const catColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
+                
+                const imgCat = await createPieChart(catLabels, catCounts, catColors);
+                doc.addImage(imgCat, 'JPEG', pageWidth - margin - 70, y, 70, 70);
+                
+                y += 75;
+                
+                doc.setFontSize(10).setFont('helvetica', 'bold');
+                doc.text("Repartition par statuts", margin + 35, y, { align: 'center' });
+                doc.text("Repartition par categories", pageWidth - margin - 35, y, { align: 'center' });
+            } catch (error) {
+                console.error('Erreur graphiques:', error);
+            }
+            
+            // PAGES DÉTAILS
+            for (let i = 0; i < data.length; i++) {
+                const r = data[i];
+                
+                doc.addPage();
+                y = 15;
+                
+                doc.setFontSize(9).setFont('helvetica', 'italic').setTextColor(100);
+                doc.text("Mairie de Saint-Remeze - Rapport de signalement", margin, y);
+                
+                y += 3;
+                doc.setDrawColor(200);
+                doc.setLineWidth(0.3);
+                doc.line(margin, y, pageWidth - margin, y);
+                
+                y += 12;
+                doc.setFontSize(15).setFont('helvetica', 'bold').setTextColor(0);
+                doc.text(`${i + 1}. ${clean(r.title)}`, margin, y);
+                
+                y += 12;
+                doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
+                doc.text("STATUT :", margin, y);
+                
+                const statusColors = {
+                    'Terminée': [16, 185, 129],
+                    'Rejetée': [239, 68, 68],
+                    'En cours': [59, 130, 246],
+                    'En attente': [245, 158, 11]
+                };
+                const color = statusColors[r.status] || [100, 100, 100];
+                doc.setTextColor(color[0], color[1], color[2]);
+                doc.text(r.status.toUpperCase(), margin + 25, y);
+                
+                doc.setTextColor(0);
+                doc.setFont('helvetica', 'bold');
+                doc.text("CATEGORIE :", 110, y);
+                doc.setFont('helvetica', 'normal');
+                doc.text(clean(r.category), 140, y);
+                
+                y += 10;
+                doc.setTextColor(0).setFontSize(10).setFont('helvetica', 'normal');
+                
+                const userName = r.user?.name || r.name || 'Anonyme';
+                const userEmail = r.user?.email || r.email || 'N/A';
+                const userPhone = r.user?.phone || r.phone || 'N/A';
+                
+                doc.text(`Declarant : ${clean(userName)}`, margin, y);
+                
+                y += 6;
+                doc.text(`Email : ${userEmail}`, margin, y);
+                doc.text(`Tel : ${userPhone}`, 110, y);
+                
+                y += 6;
+                doc.text(`Date : ${new Date(r.createdAt).toLocaleDateString('fr-FR')}`, margin, y);
+                
+                if (r.archived && r.archivedAt) {
+                    const daysSince = Math.floor((Date.now() - new Date(r.archivedAt)) / (1000*60*60*24));
+                    doc.text(`Archivee depuis : ${daysSince} jours`, 110, y);
+                }
+                
+                y += 6;
+                doc.setDrawColor(230);
+                doc.setLineWidth(0.3);
+                doc.line(margin, y, pageWidth - margin, y);
+                
+                y += 10;
+                doc.setFont('helvetica', 'bold');
+                doc.text("Description :", margin, y);
+                
+                y += 7;
+                doc.setFont('helvetica', 'normal');
+                const splitDesc = doc.splitTextToSize(clean(r.description || 'Aucune description'), pageWidth - 2*margin);
+                doc.text(splitDesc, margin, y);
+                
+                y += (splitDesc.length * 5) + 10;
+                
+                if (r.assignedTo) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Assigne a :`, margin, y);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(clean(r.assignedTo), margin + 30, y);
+                    y += 7;
+                }
+                
+                if (r.adminNotes) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Notes admin :`, margin, y);
+                    y += 7;
+                    doc.setFont('helvetica', 'normal');
+                    const splitNotes = doc.splitTextToSize(clean(r.adminNotes), pageWidth - 2*margin);
+                    doc.text(splitNotes, margin, y);
+                    y += (splitNotes.length * 5) + 7;
+                }
+                
+                if (r.location && r.location.coordinates) {
+                    const [lng, lat] = r.location.coordinates;
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Localisation :`, margin, y);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(`Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`, margin + 35, y);
+                }
+            }
+            
+            const filename = currentTab === 'archived'
+                ? `rapport-archives-${now.toISOString().split('T')[0]}.pdf`
+                : `rapport-actives-${now.toISOString().split('T')[0]}.pdf`;
+            
+            doc.save(filename);
+            
+            alert(`✅ Export PDF réussi: ${data.length} remarque(s)`);
+        }
+
+        if(localStorage.getItem('adminToken')) initDashboard();
+    </script>
+</body>
+</html>

@@ -1,0 +1,5 @@
+
+// Route admin - Redirection vers admin.html
+app.get('/admin', (req, res) => {
+  res.redirect('/admin.html');
+});
