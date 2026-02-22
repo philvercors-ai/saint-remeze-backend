@@ -529,13 +529,258 @@
             }
         }
 
+        
+        
+        
+
+                // ===== EXPORT CSV =====
         function exportCSV() {
-            alert('Export CSV: Fonctionnalité à implémenter');
+            const data = currentTab === 'active' ? allData : archivedData;
+            
+            if (data.length === 0) {
+                alert('Aucune remarque à exporter');
+                return;
+            }
+            
+            // En-têtes CSV
+            let csv = "Date,Citoyen,Email,Categorie,Titre,Statut,Description,Assigne_a,Notes_admin,Archive";
+            
+            if (currentTab === 'archived') {
+                csv += ",Jours_archives";
+            }
+            
+            csv += "\n";
+            
+            // Données
+            data.forEach(r => {
+                const date = new Date(r.createdAt).toLocaleDateString('fr-FR');
+                const userName = (r.user?.name || r.name || 'Anonyme').replace(/"/g, '""');
+                const userEmail = (r.user?.email || r.email || 'N/A').replace(/"/g, '""');
+                const category = (r.category || '').replace(/"/g, '""');
+                const title = (r.title || '').replace(/"/g, '""');
+                const status = (r.status || '').replace(/"/g, '""');
+                const desc = (r.description || '').replace(/(\r\n|\n|\r)/gm, ' ').replace(/"/g, '""');
+                const assigned = (r.assignedTo || '').replace(/"/g, '""');
+                const notes = (r.adminNotes || '').replace(/"/g, '""');
+                const archived = r.archived ? 'Oui' : 'Non';
+                
+                let row = `"${date}","${userName}","${userEmail}","${category}","${title}","${status}","${desc}","${assigned}","${notes}","${archived}"`;
+                
+                if (currentTab === 'archived' && r.archivedAt) {
+                    const daysSince = Math.floor((Date.now() - new Date(r.archivedAt)) / (1000*60*60*24));
+                    row += `,"${daysSince}"`;
+                }
+                
+                csv += row + "\n";
+            });
+            
+            // Créer et télécharger le fichier
+            const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement("a");
+            const url = URL.createObjectURL(blob);
+            
+            const filename = currentTab === 'archived' 
+                ? `remarques-archives-${new Date().toISOString().split('T')[0]}.csv`
+                : `remarques-actives-${new Date().toISOString().split('T')[0]}.csv`;
+            
+            link.setAttribute("href", url);
+            link.setAttribute("download", filename);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            
+            alert(`✅ Export CSV réussi: ${data.length} remarque(s)`);
         }
         
-        function exportPDF() {
-            alert('Export PDF: Fonctionnalité à implémenter');
+        // ===== EXPORT PDF =====
+        async function exportPDF() {
+            const data = currentTab === 'active' ? allData : archivedData;
+            
+            if (data.length === 0) {
+                alert('Aucune remarque à exporter');
+                return;
+            }
+            
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ compress: true });
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 14;
+            let y = 20;
+            
+            const clean = (str) => {
+                if (!str) return "N/A";
+                return str.replace(/[^\p{L}\p{N}\s,.'\-\/!?;:()]/gu, '').trim();
+            };
+            
+            // PAGE 1 : STATISTIQUES
+            doc.setFontSize(18).setFont('helvetica', 'bold');
+            doc.text("Saint-Remèze", margin, y);
+            
+            y += 6;
+            doc.setFontSize(11).setFont('helvetica', 'normal');
+            doc.text("ARDÈCHE", margin, y);
+            
+            y += 15;
+            doc.setFontSize(16).setFont('helvetica', 'bold');
+            const title = currentTab === 'archived' ? "Rapport des Remarques Archivées" : "Rapport des Remarques Actives";
+            doc.text(title, pageWidth / 2, y, { align: 'center' });
+            
+            y += 7;
+            doc.setFontSize(13);
+            doc.text("Commune de Saint-Remèze", pageWidth / 2, y, { align: 'center' });
+            
+            y += 13;
+            doc.setFontSize(9);
+            const now = new Date();
+            doc.text(`Généré le ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')}`, margin, y);
+            
+            y += 10;
+            doc.setFontSize(12).setFont('helvetica', 'bold');
+            doc.text("Statistiques globales", margin, y);
+            
+            y += 7;
+            doc.setFontSize(10).setFont('helvetica', 'normal');
+            
+            if (currentTab === 'active') {
+                doc.text(`Total des signalements actifs : ${data.length}`, margin, y);
+                y += 6;
+                doc.text(`En attente: ${data.filter(r => r.status === 'En attente').length}   En cours: ${data.filter(r => r.status === 'En cours').length}`, margin, y);
+                y += 6;
+                doc.text(`Terminées: ${data.filter(r => r.status === 'Terminée').length}   Rejetées: ${data.filter(r => r.status === 'Rejetée').length}`, margin, y);
+            } else {
+                doc.text(`Total des remarques archivées : ${data.length}`, margin, y);
+                y += 6;
+                const avgDays = data.filter(r => r.archivedAt).reduce((sum, r) => {
+                    return sum + Math.floor((Date.now() - new Date(r.archivedAt)) / (1000*60*60*24));
+                }, 0) / data.filter(r => r.archivedAt).length;
+                doc.text(`Durée moyenne d'archivage : ${Math.round(avgDays)} jours`, margin, y);
+            }
+            
+            y += 10;
+            doc.setFontSize(11).setFont('helvetica', 'bold');
+            doc.text("Répartition par catégories :", margin, y);
+            
+            y += 7;
+            doc.setFontSize(9).setFont('helvetica', 'normal');
+            
+            const categories = {};
+            data.forEach(r => {
+                categories[r.category] = (categories[r.category] || 0) + 1;
+            });
+            
+            Object.entries(categories).forEach(([cat, count]) => {
+                doc.text(`• ${clean(cat)} : ${count}`, margin, y);
+                y += 5;
+            });
+            
+            // PAGES DÉTAILS
+            for (let i = 0; i < data.length; i++) {
+                const r = data[i];
+                
+                // Nouvelle page
+                doc.addPage();
+                y = 15;
+                
+                // En-tête
+                doc.setFontSize(9).setFont('helvetica', 'italic').setTextColor(100);
+                doc.text("Mairie de Saint-Remèze - Rapport de signalement", margin, y);
+                
+                y += 3;
+                doc.setDrawColor(200);
+                doc.line(margin, y, pageWidth - margin, y);
+                
+                y += 12;
+                doc.setFontSize(15).setFont('helvetica', 'bold').setTextColor(0);
+                doc.text(`${i + 1}. ${clean(r.title)}`, margin, y);
+                
+                y += 12;
+                doc.setFontSize(11);
+                doc.text("STATUT :", margin, y);
+                
+                const statusColors = {
+                    'Terminée': [39, 174, 96],
+                    'Rejetée': [192, 57, 43],
+                    'En cours': [41, 128, 185],
+                    'En attente': [241, 196, 15]
+                };
+                const color = statusColors[r.status] || [100, 100, 100];
+                doc.setTextColor(color[0], color[1], color[2]);
+                doc.text(r.status.toUpperCase(), margin + 25, y);
+                
+                y += 10;
+                doc.setTextColor(0).setFontSize(10).setFont('helvetica', 'normal');
+                
+                const userName = r.user?.name || r.name || 'Anonyme';
+                const userEmail = r.user?.email || r.email || 'N/A';
+                
+                doc.text(`Déclarant : ${clean(userName)}`, margin, y);
+                doc.text(`Catégorie : ${clean(r.category)}`, 110, y);
+                
+                y += 6;
+                doc.text(`Email : ${userEmail}`, margin, y);
+                
+                if (r.archived && r.archivedAt) {
+                    const daysSince = Math.floor((Date.now() - new Date(r.archivedAt)) / (1000*60*60*24));
+                    doc.text(`Archivée depuis : ${daysSince} jours`, 110, y);
+                }
+                
+                y += 6;
+                doc.text(`Date : ${new Date(r.createdAt).toLocaleDateString('fr-FR')}`, margin, y);
+                
+                y += 6;
+                doc.setDrawColor(230);
+                doc.line(margin, y, pageWidth - margin, y);
+                
+                y += 10;
+                doc.setFont('helvetica', 'bold');
+                doc.text("Description du déclarant :", margin, y);
+                
+                y += 7;
+                doc.setFont('helvetica', 'normal');
+                const splitDesc = doc.splitTextToSize(clean(r.description || 'Aucune description'), pageWidth - 2*margin);
+                doc.text(splitDesc, margin, y);
+                
+                y += (splitDesc.length * 5) + 10;
+                
+                if (r.assignedTo) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Assigné à :`, margin, y);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(clean(r.assignedTo), margin + 30, y);
+                    y += 7;
+                }
+                
+                if (r.adminNotes) {
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Notes admin :`, margin, y);
+                    y += 7;
+                    doc.setFont('helvetica', 'normal');
+                    const splitNotes = doc.splitTextToSize(clean(r.adminNotes), pageWidth - 2*margin);
+                    doc.text(splitNotes, margin, y);
+                    y += (splitNotes.length * 5) + 7;
+                }
+                
+                if (r.location && r.location.coordinates) {
+                    const [lng, lat] = r.location.coordinates;
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(`Localisation :`, margin, y);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(`Lat: ${lat.toFixed(6)}, Lng: ${lng.toFixed(6)}`, margin + 35, y);
+                }
+            }
+            
+            // Sauvegarder
+            const filename = currentTab === 'archived'
+                ? `rapport-archives-${now.toISOString().split('T')[0]}.pdf`
+                : `rapport-actives-${now.toISOString().split('T')[0]}.pdf`;
+            
+            doc.save(filename);
+            
+            alert(`✅ Export PDF réussi: ${data.length} remarque(s)`);
         }
+
 
         if(localStorage.getItem('adminToken')) initDashboard();
     </script>
