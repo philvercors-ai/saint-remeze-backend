@@ -39,6 +39,14 @@ const remarkSchema = new mongoose.Schema({
   },
   adminNotes: {
     type: String
+  },
+  // ✅ NOUVEAU : Champ archivage
+  archived: {
+    type: Boolean,
+    default: false
+  },
+  archivedAt: {
+    type: Date
   }
 }, {
   timestamps: true
@@ -46,5 +54,58 @@ const remarkSchema = new mongoose.Schema({
 
 // Index pour la géolocalisation
 remarkSchema.index({ location: '2dsphere' });
+
+// Index pour l'archivage
+remarkSchema.index({ archived: 1, archivedAt: 1 });
+remarkSchema.index({ status: 1, updatedAt: 1 });
+
+// ✅ MÉTHODE : Vérifier si archivable (Terminée/Rejetée + 30j)
+remarkSchema.methods.isArchivable = function() {
+  if (this.archived) return false;
+  if (this.status !== 'Terminée' && this.status !== 'Rejetée') return false;
+  
+  const daysSinceUpdate = Math.floor((Date.now() - this.updatedAt) / (1000 * 60 * 60 * 24));
+  return daysSinceUpdate >= 30;
+};
+
+// ✅ MÉTHODE : Vérifier si supprimable (archivée depuis 1 an)
+remarkSchema.methods.isDeletable = function() {
+  if (!this.archived || !this.archivedAt) return false;
+  
+  const daysSinceArchive = Math.floor((Date.now() - this.archivedAt) / (1000 * 60 * 60 * 24));
+  return daysSinceArchive >= 365;
+};
+
+// ✅ MÉTHODE : Archiver
+remarkSchema.methods.archive = function() {
+  if (this.isArchivable()) {
+    this.archived = true;
+    this.archivedAt = new Date();
+    return this.save();
+  }
+  throw new Error('Cette remarque ne peut pas être archivée');
+};
+
+// ✅ MÉTHODE STATIQUE : Archiver automatiquement toutes les remarques éligibles
+remarkSchema.statics.autoArchive = async function() {
+  const thirtyDaysAgo = new Date();
+  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  
+  const result = await this.updateMany(
+    {
+      archived: false,
+      status: { $in: ['Terminée', 'Rejetée'] },
+      updatedAt: { $lte: thirtyDaysAgo }
+    },
+    {
+      $set: {
+        archived: true,
+        archivedAt: new Date()
+      }
+    }
+  );
+  
+  return result;
+};
 
 module.exports = mongoose.model('Remark', remarkSchema);

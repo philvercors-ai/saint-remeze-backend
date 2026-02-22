@@ -37,18 +37,41 @@ const upload = multer({
 });
 
 // ===== ROUTE ADMIN - Compatible avec admin.html =====
+
+// 1. GET /api/remarks - Exclure les archivées
+router.get('/', optionalAuth, async (req, res) => {
+  try {
+    console.log('📋 GET /api/remarks');
+    const remarks = await Remark.find({ archived: false })  // ← AJOUTER FILTRE
+      .populate('user', 'name email')
+      .sort({ createdAt: -1 });
+    console.log('✅ Remarques actives:', remarks.length);
+    res.json(remarks);
+  } catch (error) {
+    console.error('❌ Erreur GET remarks:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// 2. GET /api/remarks/admin/all - Exclure les archivées
 router.get('/admin/all', optionalAuth, async (req, res) => {
   try {
     console.log('👑 GET /api/remarks/admin/all');
-    const remarks = await Remark.find()
-      .populate('user', 'name email')  // Récupérer infos user
+    const remarks = await Remark.find({ archived: false })  // ← AJOUTER FILTRE
+      .populate('user', 'name email')
       .sort({ createdAt: -1 });
-    console.log('✅ Remarques admin:', remarks.length);
+    console.log('✅ Remarques admin actives:', remarks.length);
+    
+    // Ajouter info archivable
+    const remarksWithInfo = remarks.map(r => ({
+      ...r.toObject(),
+      isArchivable: r.isArchivable()
+    }));
     
     res.json({
       success: true,
       count: remarks.length,
-      data: remarks
+      data: remarksWithInfo
     });
   } catch (error) {
     console.error('❌ Erreur admin/all:', error);
@@ -61,7 +84,7 @@ router.get('/admin/all', optionalAuth, async (req, res) => {
   }
 });
 
-// DELETE admin - Route spéciale pour admin
+// 3. DELETE - Vérifier si supprimable (archivée > 1 an)
 router.delete('/admin/:id', optionalAuth, async (req, res) => {
   try {
     console.log('🗑️  DELETE /api/remarks/admin/' + req.params.id);
@@ -71,6 +94,17 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
     }
 
+    // ✅ VÉRIFIER SI SUPPRIMABLE
+    if (!remark.isDeletable()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Suppression autorisée uniquement pour les remarques archivées depuis plus d\'un an',
+        archived: remark.archived,
+        archivedAt: remark.archivedAt
+      });
+    }
+
+    // Supprimer photo
     if (remark.photoUrl) {
       const photoPath = path.join(__dirname, '..', remark.photoUrl);
       if (fs.existsSync(photoPath)) {
@@ -80,7 +114,7 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
     }
 
     await remark.deleteOne();
-    console.log('✅ Remarque supprimée par admin:', req.params.id);
+    console.log('✅ Remarque supprimée (archivée depuis > 1 an):', req.params.id);
     
     res.json({ success: true, message: 'Remarque supprimée' });
   } catch (error) {
@@ -88,6 +122,8 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 });
+
+
 
 // GET toutes les remarques (citoyens)
 router.get('/', optionalAuth, async (req, res) => {

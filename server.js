@@ -39,6 +39,39 @@ app.get('/admin', (req, res) => {
 // Routes API
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/remarks', require('./routes/remarks'));
+// Après les autres routes (ligne ~40)
+app.use('/api/archive', require('./routes/archive'));
+
+// ===== TÂCHE CRON : Archivage automatique quotidien =====
+// Optionnel : Si vous voulez archiver automatiquement tous les jours
+
+const Remark = require('./models/Remark');
+
+// Lancer archivage au démarrage
+(async () => {
+  try {
+    const result = await Remark.autoArchive();
+    console.log('🗄️  Archivage auto au démarrage:', result.modifiedCount, 'remarque(s)');
+  } catch (err) {
+    console.error('❌ Erreur archivage auto:', err);
+  }
+})();
+
+// Archivage quotidien (à 2h du matin)
+setInterval(async () => {
+  const now = new Date();
+  if (now.getHours() === 2 && now.getMinutes() === 0) {
+    try {
+      const result = await Remark.autoArchive();
+      console.log('🗄️  Archivage auto quotidien:', result.modifiedCount, 'remarque(s)');
+    } catch (err) {
+      console.error('❌ Erreur archivage auto:', err);
+    }
+  }
+}, 60000); // Vérifier chaque minute
+
+
+
 
 // Connexion MongoDB
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://philvercorsai:R3gVz74RBCiCgxY4@cluster0.5r9mq.mongodb.net/saint-remeze?retryWrites=true&w=majority&appName=Cluster0';
