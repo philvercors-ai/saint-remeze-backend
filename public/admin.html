@@ -717,22 +717,6 @@
         }, 800);
     });
 }
-                    
-                    setTimeout(() => {
-                        const finalCanvas = document.createElement('canvas');
-                        finalCanvas.width = 400;
-                        finalCanvas.height = 400;
-                        const finalCtx = finalCanvas.getContext('2d');
-                        
-                        finalCtx.fillStyle = '#ffffff';
-                        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-                        finalCtx.drawImage(canvas, 0, 0);
-                        
-                        const imageData = finalCanvas.toDataURL('image/jpeg', 0.95);
-                        chart.destroy();
-                        resolve(imageData);
-                    }, 500);
-                };
             
             
             // PAGE 1 : STATISTIQUES
