@@ -529,11 +529,7 @@
             }
         }
 
-        
-        
-        
-
-                // ===== EXPORT CSV =====
+        // ===== EXPORT CSV =====
         function exportCSV() {
             const data = currentTab === 'active' ? allData : archivedData;
             
@@ -542,7 +538,6 @@
                 return;
             }
             
-            // En-têtes CSV
             let csv = "Date,Citoyen,Email,Categorie,Titre,Statut,Description,Assigne_a,Notes_admin,Archive";
             
             if (currentTab === 'archived') {
@@ -551,7 +546,6 @@
             
             csv += "\n";
             
-            // Données
             data.forEach(r => {
                 const date = new Date(r.createdAt).toLocaleDateString('fr-FR');
                 const userName = (r.user?.name || r.name || 'Anonyme').replace(/"/g, '""');
@@ -574,7 +568,6 @@
                 csv += row + "\n";
             });
             
-            // Créer et télécharger le fichier
             const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
             const link = document.createElement("a");
             const url = URL.createObjectURL(blob);
@@ -593,7 +586,7 @@
             alert(`✅ Export CSV réussi: ${data.length} remarque(s)`);
         }
         
-        // ===== EXPORT PDF =====
+        // ===== EXPORT PDF PREMIUM =====
         async function exportPDF() {
             const data = currentTab === 'active' ? allData : archivedData;
             
@@ -607,36 +600,96 @@
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 14;
-            let y = 20;
             
             const clean = (str) => {
                 if (!str) return "N/A";
-                return str.replace(/[^\p{L}\p{N}\s,.'\-\/!?;:()]/gu, '').trim();
+                // Supprimer caractères spéciaux
+                return String(str).replace(/[^\u0000-\u007F\u00C0-\u00FF\u0100-\u017F\u0180-\u024F]/g, '').trim();
             };
             
+            // Créer graphique camembert
+            async function createPieChart(labels, chartData, colors) {
+                return new Promise(resolve => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 400;
+                    canvas.height = 400;
+                    const ctx = canvas.getContext('2d');
+                    
+                    const chart = new Chart(ctx, {
+                        type: 'pie',
+                        data: {
+                            labels: labels,
+                            datasets: [{
+                                data: chartData,
+                                backgroundColor: colors,
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
+                        },
+                        options: {
+                            responsive: false,
+                            animation: false,
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: 'bottom',
+                                    labels: {
+                                        font: { size: 11 },
+                                        boxWidth: 15,
+                                        padding: 8
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    
+                    setTimeout(() => {
+                        const finalCanvas = document.createElement('canvas');
+                        finalCanvas.width = 400;
+                        finalCanvas.height = 400;
+                        const finalCtx = finalCanvas.getContext('2d');
+                        
+                        finalCtx.fillStyle = '#ffffff';
+                        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+                        finalCtx.drawImage(canvas, 0, 0);
+                        
+                        const imageData = finalCanvas.toDataURL('image/jpeg', 0.95);
+                        chart.destroy();
+                        resolve(imageData);
+                    }, 500);
+                });
+            }
+            
             // PAGE 1 : STATISTIQUES
-            doc.setFontSize(18).setFont('helvetica', 'bold');
-            doc.text("Saint-Remèze", margin, y);
+            let y = 20;
+            
+            doc.setFontSize(18).setFont('helvetica', 'bold').setTextColor(37, 99, 235);
+            doc.text("Saint-Remeze", margin, y);
             
             y += 6;
-            doc.setFontSize(11).setFont('helvetica', 'normal');
-            doc.text("ARDÈCHE", margin, y);
+            doc.setFontSize(11).setFont('helvetica', 'normal').setTextColor(100);
+            doc.text("ARDECHE", margin, y);
+            
+            y += 5;
+            doc.setDrawColor(37, 99, 235);
+            doc.setLineWidth(0.5);
+            doc.line(margin, y, pageWidth - margin, y);
             
             y += 15;
-            doc.setFontSize(16).setFont('helvetica', 'bold');
-            const title = currentTab === 'archived' ? "Rapport des Remarques Archivées" : "Rapport des Remarques Actives";
+            doc.setFontSize(16).setFont('helvetica', 'bold').setTextColor(0);
+            const title = currentTab === 'archived' ? "Rapport des Remarques Archivees" : "Rapport des Remarques Actives";
             doc.text(title, pageWidth / 2, y, { align: 'center' });
             
             y += 7;
-            doc.setFontSize(13);
-            doc.text("Commune de Saint-Remèze", pageWidth / 2, y, { align: 'center' });
-            
-            y += 13;
-            doc.setFontSize(9);
-            const now = new Date();
-            doc.text(`Généré le ${now.toLocaleDateString('fr-FR')} à ${now.toLocaleTimeString('fr-FR')}`, margin, y);
+            doc.setFontSize(12).setTextColor(100);
+            doc.text("Commune de Saint-Remeze", pageWidth / 2, y, { align: 'center' });
             
             y += 10;
+            doc.setFontSize(9).setTextColor(0);
+            const now = new Date();
+            doc.text(`Genere le ${now.toLocaleDateString('fr-FR')} a ${now.toLocaleTimeString('fr-FR')}`, pageWidth / 2, y, { align: 'center' });
+            
+            y += 12;
             doc.setFontSize(12).setFont('helvetica', 'bold');
             doc.text("Statistiques globales", margin, y);
             
@@ -646,49 +699,60 @@
             if (currentTab === 'active') {
                 doc.text(`Total des signalements actifs : ${data.length}`, margin, y);
                 y += 6;
-                doc.text(`En attente: ${data.filter(r => r.status === 'En attente').length}   En cours: ${data.filter(r => r.status === 'En cours').length}`, margin, y);
-                y += 6;
-                doc.text(`Terminées: ${data.filter(r => r.status === 'Terminée').length}   Rejetées: ${data.filter(r => r.status === 'Rejetée').length}`, margin, y);
+                doc.text(`En attente: ${data.filter(r => r.status === 'En attente').length}   En cours: ${data.filter(r => r.status === 'En cours').length}   Terminees: ${data.filter(r => r.status === 'Terminée').length}   Rejetees: ${data.filter(r => r.status === 'Rejetée').length}`, margin, y);
             } else {
-                doc.text(`Total des remarques archivées : ${data.length}`, margin, y);
-                y += 6;
-                const avgDays = data.filter(r => r.archivedAt).reduce((sum, r) => {
-                    return sum + Math.floor((Date.now() - new Date(r.archivedAt)) / (1000*60*60*24));
-                }, 0) / data.filter(r => r.archivedAt).length;
-                doc.text(`Durée moyenne d'archivage : ${Math.round(avgDays)} jours`, margin, y);
+                doc.text(`Total des remarques archivees : ${data.length}`, margin, y);
             }
             
             y += 10;
-            doc.setFontSize(11).setFont('helvetica', 'bold');
-            doc.text("Répartition par catégories :", margin, y);
             
-            y += 7;
-            doc.setFontSize(9).setFont('helvetica', 'normal');
-            
-            const categories = {};
-            data.forEach(r => {
-                categories[r.category] = (categories[r.category] || 0) + 1;
-            });
-            
-            Object.entries(categories).forEach(([cat, count]) => {
-                doc.text(`• ${clean(cat)} : ${count}`, margin, y);
-                y += 5;
-            });
+            try {
+                const statusCounts = [
+                    data.filter(r => r.status === 'En attente').length,
+                    data.filter(r => r.status === 'En cours').length,
+                    data.filter(r => r.status === 'Terminée').length,
+                    data.filter(r => r.status === 'Rejetée').length
+                ];
+                const statusLabels = ['En attente', 'En cours', 'Terminee', 'Rejetee'];
+                const statusColors = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444'];
+                
+                const imgStatus = await createPieChart(statusLabels, statusCounts, statusColors);
+                doc.addImage(imgStatus, 'JPEG', margin, y, 70, 70);
+                
+                const categories = {};
+                data.forEach(r => {
+                    categories[r.category] = (categories[r.category] || 0) + 1;
+                });
+                
+                const catLabels = Object.keys(categories);
+                const catCounts = Object.values(categories);
+                const catColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
+                
+                const imgCat = await createPieChart(catLabels, catCounts, catColors);
+                doc.addImage(imgCat, 'JPEG', pageWidth - margin - 70, y, 70, 70);
+                
+                y += 75;
+                
+                doc.setFontSize(10).setFont('helvetica', 'bold');
+                doc.text("Repartition par statuts", margin + 35, y, { align: 'center' });
+                doc.text("Repartition par categories", pageWidth - margin - 35, y, { align: 'center' });
+            } catch (error) {
+                console.error('Erreur graphiques:', error);
+            }
             
             // PAGES DÉTAILS
             for (let i = 0; i < data.length; i++) {
                 const r = data[i];
                 
-                // Nouvelle page
                 doc.addPage();
                 y = 15;
                 
-                // En-tête
                 doc.setFontSize(9).setFont('helvetica', 'italic').setTextColor(100);
-                doc.text("Mairie de Saint-Remèze - Rapport de signalement", margin, y);
+                doc.text("Mairie de Saint-Remeze - Rapport de signalement", margin, y);
                 
                 y += 3;
                 doc.setDrawColor(200);
+                doc.setLineWidth(0.3);
                 doc.line(margin, y, pageWidth - margin, y);
                 
                 y += 12;
@@ -697,45 +761,54 @@
                 
                 y += 12;
                 doc.setFontSize(11);
+                doc.setFont('helvetica', 'bold');
                 doc.text("STATUT :", margin, y);
                 
                 const statusColors = {
-                    'Terminée': [39, 174, 96],
-                    'Rejetée': [192, 57, 43],
-                    'En cours': [41, 128, 185],
-                    'En attente': [241, 196, 15]
+                    'Terminée': [16, 185, 129],
+                    'Rejetée': [239, 68, 68],
+                    'En cours': [59, 130, 246],
+                    'En attente': [245, 158, 11]
                 };
                 const color = statusColors[r.status] || [100, 100, 100];
                 doc.setTextColor(color[0], color[1], color[2]);
                 doc.text(r.status.toUpperCase(), margin + 25, y);
+                
+                doc.setTextColor(0);
+                doc.setFont('helvetica', 'bold');
+                doc.text("CATEGORIE :", 110, y);
+                doc.setFont('helvetica', 'normal');
+                doc.text(clean(r.category), 140, y);
                 
                 y += 10;
                 doc.setTextColor(0).setFontSize(10).setFont('helvetica', 'normal');
                 
                 const userName = r.user?.name || r.name || 'Anonyme';
                 const userEmail = r.user?.email || r.email || 'N/A';
+                const userPhone = r.user?.phone || r.phone || 'N/A';
                 
-                doc.text(`Déclarant : ${clean(userName)}`, margin, y);
-                doc.text(`Catégorie : ${clean(r.category)}`, 110, y);
+                doc.text(`Declarant : ${clean(userName)}`, margin, y);
                 
                 y += 6;
                 doc.text(`Email : ${userEmail}`, margin, y);
-                
-                if (r.archived && r.archivedAt) {
-                    const daysSince = Math.floor((Date.now() - new Date(r.archivedAt)) / (1000*60*60*24));
-                    doc.text(`Archivée depuis : ${daysSince} jours`, 110, y);
-                }
+                doc.text(`Tel : ${userPhone}`, 110, y);
                 
                 y += 6;
                 doc.text(`Date : ${new Date(r.createdAt).toLocaleDateString('fr-FR')}`, margin, y);
                 
+                if (r.archived && r.archivedAt) {
+                    const daysSince = Math.floor((Date.now() - new Date(r.archivedAt)) / (1000*60*60*24));
+                    doc.text(`Archivee depuis : ${daysSince} jours`, 110, y);
+                }
+                
                 y += 6;
                 doc.setDrawColor(230);
+                doc.setLineWidth(0.3);
                 doc.line(margin, y, pageWidth - margin, y);
                 
                 y += 10;
                 doc.setFont('helvetica', 'bold');
-                doc.text("Description du déclarant :", margin, y);
+                doc.text("Description :", margin, y);
                 
                 y += 7;
                 doc.setFont('helvetica', 'normal');
@@ -746,7 +819,7 @@
                 
                 if (r.assignedTo) {
                     doc.setFont('helvetica', 'bold');
-                    doc.text(`Assigné à :`, margin, y);
+                    doc.text(`Assigne a :`, margin, y);
                     doc.setFont('helvetica', 'normal');
                     doc.text(clean(r.assignedTo), margin + 30, y);
                     y += 7;
@@ -771,7 +844,6 @@
                 }
             }
             
-            // Sauvegarder
             const filename = currentTab === 'archived'
                 ? `rapport-archives-${now.toISOString().split('T')[0]}.pdf`
                 : `rapport-actives-${now.toISOString().split('T')[0]}.pdf`;
@@ -780,7 +852,6 @@
             
             alert(`✅ Export PDF réussi: ${data.length} remarque(s)`);
         }
-
 
         if(localStorage.getItem('adminToken')) initDashboard();
     </script>
