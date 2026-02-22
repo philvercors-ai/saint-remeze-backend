@@ -290,29 +290,56 @@
                 return str.replace(/[^\p{L}\p{N}\s,.'\-\/!?;:()]/gu, '').trim();
             };
 
-            async function createChart(labels, data, colors) {
+                        async function createChart(labels, data, colors) {
                 return new Promise(res => {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 400; canvas.height = 400;
+                    canvas.width = 400;
+                    canvas.height = 400;
                     const ctx = canvas.getContext('2d');
                     
-                    // FORCER FOND BLANC
-                    ctx.fillStyle = "white";
-                    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-                    new Chart(ctx, {
+                    // Créer le graphique Chart.js
+                    const chart = new Chart(ctx, {
                         type: 'pie',
                         data: {
                             labels: labels,
-                            datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }]
+                            datasets: [{
+                                data: data,
+                                backgroundColor: colors,
+                                borderWidth: 2,
+                                borderColor: '#ffffff'
+                            }]
                         },
-                        options: { 
-                            responsive: false, 
-                            animation: false, 
-                            plugins: { legend: { display: false } }
+                        options: {
+                            responsive: false,
+                            animation: false,
+                            plugins: {
+                                legend: { display: false }
+                            }
                         }
                     });
-                    setTimeout(() => res(canvas.toDataURL('image/jpeg', 0.9)), 400);
+                    
+                    // Attendre le rendu puis créer un canvas avec fond blanc
+                    setTimeout(() => {
+                        // Canvas final
+                        const finalCanvas = document.createElement('canvas');
+                        finalCanvas.width = 400;
+                        finalCanvas.height = 400;
+                        const finalCtx = finalCanvas.getContext('2d');
+                        
+                        // 1. Dessiner fond blanc
+                        finalCtx.fillStyle = '#ffffff';
+                        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+                        
+                        // 2. Dessiner le graphique par-dessus
+                        finalCtx.drawImage(canvas, 0, 0);
+                        
+                        // 3. Convertir en JPEG (fond blanc garanti)
+                        const imageData = finalCanvas.toDataURL('image/jpeg', 0.95);
+                        
+                        // Nettoyer
+                        chart.destroy();
+                        res(imageData);
+                    }, 500);
                 });
             }
 
