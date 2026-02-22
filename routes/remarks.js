@@ -36,26 +36,32 @@ const upload = multer({
   }
 });
 
-// GET toutes les remarques (auth optionnelle)
+// GET toutes les remarques - RETOURNE UN TABLEAU DIRECT
 router.get('/', optionalAuth, async (req, res) => {
   try {
+    console.log('📋 GET /api/remarks');
     const remarks = await Remark.find().sort({ createdAt: -1 });
+    console.log('✅ Remarques trouvées:', remarks.length);
+    
+    // IMPORTANT : Renvoyer directement le tableau, pas un objet
     res.json(remarks);
   } catch (error) {
-    console.error('Erreur récupération remarques:', error);
+    console.error('❌ Erreur récupération remarques:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 });
 
-// POST nouvelle remarque (sans auth pour les citoyens)
+// POST nouvelle remarque
 router.post('/', upload.single('photo'), async (req, res) => {
   try {
-    console.log('📥 Données reçues:', req.body);
-    console.log('📸 Fichier reçu:', req.file ? req.file.filename : 'Aucune photo');
+    console.log('📥 POST /api/remarks');
+    console.log('   Données:', req.body);
+    console.log('   Fichier:', req.file ? req.file.filename : 'Aucune photo');
 
     const { category, title, description, latitude, longitude } = req.body;
 
     if (!category || !title) {
+      console.log('❌ Validation échouée: catégorie ou titre manquant');
       return res.status(400).json({ 
         success: false, 
         message: 'Catégorie et titre sont obligatoires' 
@@ -69,25 +75,23 @@ router.post('/', upload.single('photo'), async (req, res) => {
       status: 'En attente'
     };
 
-    // Ajouter la photo si présente
     if (req.file) {
       remarkData.photoUrl = '/uploads/' + req.file.filename;
-      console.log('✅ Photo ajoutée:', remarkData.photoUrl);
+      console.log('📸 Photo:', remarkData.photoUrl);
     }
 
-    // Ajouter la localisation si présente
     if (latitude && longitude) {
       remarkData.location = {
         type: 'Point',
         coordinates: [parseFloat(longitude), parseFloat(latitude)]
       };
-      console.log('✅ Localisation ajoutée:', remarkData.location);
+      console.log('📍 Localisation:', remarkData.location.coordinates);
     }
 
     const remark = new Remark(remarkData);
     await remark.save();
 
-    console.log('✅ Remarque créée avec succès:', remark._id);
+    console.log('✅ Remarque créée:', remark._id);
 
     res.status(201).json({ 
       success: true, 
@@ -98,7 +102,6 @@ router.post('/', upload.single('photo'), async (req, res) => {
   } catch (error) {
     console.error('❌ Erreur création remarque:', error);
     
-    // Supprimer le fichier uploadé en cas d'erreur
     if (req.file) {
       try {
         fs.unlinkSync(req.file.path);
@@ -129,7 +132,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// PUT mettre à jour remarque (auth optionnelle)
+// PUT mettre à jour remarque
 router.put('/:id', optionalAuth, async (req, res) => {
   try {
     const remark = await Remark.findByIdAndUpdate(
@@ -147,7 +150,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// DELETE supprimer remarque (auth optionnelle)
+// DELETE supprimer remarque
 router.delete('/:id', optionalAuth, async (req, res) => {
   try {
     const remark = await Remark.findById(req.params.id);
@@ -155,7 +158,6 @@ router.delete('/:id', optionalAuth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
     }
 
-    // Supprimer la photo si elle existe
     if (remark.photoUrl) {
       const photoPath = path.join(__dirname, '..', remark.photoUrl);
       if (fs.existsSync(photoPath)) {
