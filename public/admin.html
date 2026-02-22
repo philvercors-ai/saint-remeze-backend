@@ -600,48 +600,123 @@
             const pageWidth = doc.internal.pageSize.getWidth();
             const pageHeight = doc.internal.pageSize.getHeight();
             const margin = 14;
-            
+
             const clean = (str) => {
-                if (!str) return "N/A";
-                // Supprimer caractères spéciaux
-                return String(str).replace(/[^\u0000-\u007F\u00C0-\u00FF\u0100-\u017F\u0180-\u024F]/g, '').trim();
-            };
+    if (!str) return "N/A";
+    // Supprimer caractères spéciaux (compatible PDF)
+    return String(str)
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^\x20-\x7E\xC0-\xFF]/g, '')
+        .trim();
+};
+            
+
             
             // Créer graphique camembert
-            async function createPieChart(labels, chartData, colors) {
-                return new Promise(resolve => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = 400;
-                    canvas.height = 400;
-                    const ctx = canvas.getContext('2d');
-                    
-                    const chart = new Chart(ctx, {
-                        type: 'pie',
-                        data: {
-                            labels: labels,
-                            datasets: [{
-                                data: chartData,
-                                backgroundColor: colors,
-                                borderWidth: 2,
-                                borderColor: '#ffffff'
-                            }]
-                        },
-                        options: {
-                            responsive: false,
-                            animation: false,
-                            plugins: {
-                                legend: {
-                                    display: true,
-                                    position: 'bottom',
-                                    labels: {
-                                        font: { size: 11 },
-                                        boxWidth: 15,
-                                        padding: 8
-                                    }
-                                }
-                            }
+           async function createBeautifulPieChart(labels, chartData, colors, title) {
+    return new Promise(resolve => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 500;
+        canvas.height = 500;
+        const ctx = canvas.getContext('2d');
+        
+        const chart = new Chart(ctx, {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: chartData,
+                    backgroundColor: colors,
+                    borderWidth: 3,
+                    borderColor: '#ffffff',
+                    hoverOffset: 10
+                }]
+            },
+            options: {
+                responsive: false,
+                animation: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        labels: {
+                            font: { 
+                                size: 14,
+                                family: 'Arial',
+                                weight: '600'
+                            },
+                            boxWidth: 22,
+                            padding: 15,
+                            color: '#1e293b',
+                            usePointStyle: true,
+                            pointStyle: 'circle'
                         }
+                    },
+                    title: {
+                        display: true,
+                        text: title,
+                        font: {
+                            size: 16,
+                            weight: 'bold'
+                        },
+                        color: '#1e293b',
+                        padding: {
+                            top: 10,
+                            bottom: 18
+                        }
+                    },
+                    tooltip: {
+                        enabled: false
+                    }
+                }
+            },
+            plugins: [{
+                id: 'datalabels',
+                afterDatasetsDraw: function(chart) {
+                    const ctx = chart.ctx;
+                    chart.data.datasets.forEach((dataset, i) => {
+                        const meta = chart.getDatasetMeta(i);
+                        meta.data.forEach((element, index) => {
+                            const data = dataset.data[index];
+                            const total = dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((data / total) * 100).toFixed(0);
+                            
+                            if (percentage > 5) {
+                                ctx.fillStyle = '#ffffff';
+                                ctx.font = 'bold 18px Arial';
+                                ctx.textAlign = 'center';
+                                ctx.textBaseline = 'middle';
+                                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                                ctx.shadowBlur = 2;
+                                
+                                const position = element.tooltipPosition();
+                                ctx.fillText(percentage + '%', position.x, position.y);
+                                
+                                ctx.shadowBlur = 0;
+                            }
+                        });
                     });
+                }
+            }]
+        });
+        
+        setTimeout(() => {
+            const finalCanvas = document.createElement('canvas');
+            finalCanvas.width = 500;
+            finalCanvas.height = 500;
+            const finalCtx = finalCanvas.getContext('2d');
+            
+            finalCtx.fillStyle = '#ffffff';
+            finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
+            finalCtx.drawImage(canvas, 0, 0);
+            
+            const imageData = finalCanvas.toDataURL('image/png', 1.0);
+            chart.destroy();
+            resolve(imageData);
+        }, 800);
+    });
+}
                     
                     setTimeout(() => {
                         const finalCanvas = document.createElement('canvas');
@@ -657,8 +732,8 @@
                         chart.destroy();
                         resolve(imageData);
                     }, 500);
-                });
-            }
+                };
+            
             
             // PAGE 1 : STATISTIQUES
             let y = 20;
