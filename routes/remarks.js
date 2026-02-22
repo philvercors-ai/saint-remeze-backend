@@ -36,28 +36,11 @@ const upload = multer({
   }
 });
 
-// ===== ROUTE ADMIN - Compatible avec admin.html =====
-
-// 1. GET /api/remarks - Exclure les archivées
-router.get('/', optionalAuth, async (req, res) => {
-  try {
-    console.log('📋 GET /api/remarks');
-    const remarks = await Remark.find({ archived: false })  // ← AJOUTER FILTRE
-      .populate('user', 'name email')
-      .sort({ createdAt: -1 });
-    console.log('✅ Remarques actives:', remarks.length);
-    res.json(remarks);
-  } catch (error) {
-    console.error('❌ Erreur GET remarks:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
-  }
-});
-
-// 2. GET /api/remarks/admin/all - Exclure les archivées
+// ===== ROUTE ADMIN ALL - Filtre archived + ajout isArchivable =====
 router.get('/admin/all', optionalAuth, async (req, res) => {
   try {
     console.log('👑 GET /api/remarks/admin/all');
-    const remarks = await Remark.find({ archived: false })  // ← AJOUTER FILTRE
+    const remarks = await Remark.find({ archived: false })
       .populate('user', 'name email')
       .sort({ createdAt: -1 });
     console.log('✅ Remarques admin actives:', remarks.length);
@@ -84,7 +67,7 @@ router.get('/admin/all', optionalAuth, async (req, res) => {
   }
 });
 
-// 3. DELETE - Vérifier si supprimable (archivée > 1 an)
+// ===== DELETE ADMIN - Vérification isDeletable =====
 router.delete('/admin/:id', optionalAuth, async (req, res) => {
   try {
     console.log('🗑️  DELETE /api/remarks/admin/' + req.params.id);
@@ -94,13 +77,18 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
     }
 
-    // ✅ VÉRIFIER SI SUPPRIMABLE
+    // Vérifier si supprimable (archivée > 1 an)
     if (!remark.isDeletable()) {
+      const daysSinceArchive = remark.archivedAt 
+        ? Math.floor((Date.now() - remark.archivedAt) / (1000*60*60*24))
+        : 0;
+      
       return res.status(403).json({
         success: false,
         message: 'Suppression autorisée uniquement pour les remarques archivées depuis plus d\'un an',
         archived: remark.archived,
-        archivedAt: remark.archivedAt
+        archivedAt: remark.archivedAt,
+        daysSinceArchive: daysSinceArchive
       });
     }
 
@@ -114,7 +102,7 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
     }
 
     await remark.deleteOne();
-    console.log('✅ Remarque supprimée (archivée depuis > 1 an):', req.params.id);
+    console.log('✅ Remarque supprimée (archivée > 1 an):', req.params.id);
     
     res.json({ success: true, message: 'Remarque supprimée' });
   } catch (error) {
@@ -123,16 +111,14 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
   }
 });
 
-
-
-// GET toutes les remarques (citoyens)
+// ===== GET ALL - Filtre archived =====
 router.get('/', optionalAuth, async (req, res) => {
   try {
     console.log('📋 GET /api/remarks');
-    const remarks = await Remark.find()
-      .populate('user', 'name email')  // Récupérer infos user
+    const remarks = await Remark.find({ archived: false })
+      .populate('user', 'name email')
       .sort({ createdAt: -1 });
-    console.log('✅ Remarques trouvées:', remarks.length);
+    console.log('✅ Remarques actives:', remarks.length);
     
     res.json(remarks);
   } catch (error) {
@@ -152,7 +138,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
     }
     
     const remark = await Remark.findById(req.params.id)
-      .populate('user', 'name email');  // Récupérer infos user
+      .populate('user', 'name email');
     
     if (!remark) {
       console.log('❌ Remarque non trouvée:', req.params.id);
@@ -192,12 +178,9 @@ router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
       status: 'En attente'
     };
 
-    // ✅ AJOUTER LE USER SI AUTHENTIFIÉ
     if (req.user && req.user.userId) {
       remarkData.user = req.user.userId;
       console.log('👤 Remarque associée au user:', req.user.userId);
-    } else {
-      console.log('👤 Remarque anonyme (pas de user)');
     }
 
     if (req.file) {
@@ -215,8 +198,6 @@ router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
 
     const remark = new Remark(remarkData);
     await remark.save();
-
-    // Populate le user avant de renvoyer
     await remark.populate('user', 'name email');
 
     console.log('✅ Remarque créée:', remark._id);
