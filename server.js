@@ -32,8 +32,8 @@ app.use(cors({
   credentials: true
 }));
 
-app.use(express.json({ limit: '50mb' }));
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // ===== HEALTH CHECK (utilisé aussi par Render pour vérifier le service) =====
 app.get('/health', (req, res) => {
