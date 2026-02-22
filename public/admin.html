@@ -791,8 +791,8 @@
                 const statusLabels = ['En attente', 'En cours', 'Terminee', 'Rejetee'];
                 const statusColors = ['#f59e0b', '#3b82f6', '#10b981', '#ef4444'];
                 
-                const imgStatus = await createPieChart(statusLabels, statusCounts, statusColors);
-                doc.addImage(imgStatus, 'JPEG', margin, y, 70, 70);
+                const imgStatus = await createBeautifulPieChart(statusLabels, statusCounts, statusColors, 'Repartition par statuts');
+                doc.addImage(imgStatus, 'PNG', margin, y, 85, 85);
                 
                 const categories = {};
                 data.forEach(r => {
@@ -803,14 +803,11 @@
                 const catCounts = Object.values(categories);
                 const catColors = ['#3b82f6', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#14b8a6'];
                 
-                const imgCat = await createPieChart(catLabels, catCounts, catColors);
-                doc.addImage(imgCat, 'JPEG', pageWidth - margin - 70, y, 70, 70);
+                const imgCat = await createBeautifulPieChart(catLabels, catCounts, catColors, 'Repartition par categories');
+                doc.addImage(imgCat, 'PNG', pageWidth - margin - 85, y, 85, 85);
                 
-                y += 75;
+                // Les titres sont maintenant intégrés dans les graphiques
                 
-                doc.setFontSize(10).setFont('helvetica', 'bold');
-                doc.text("Repartition par statuts", margin + 35, y, { align: 'center' });
-                doc.text("Repartition par categories", pageWidth - margin - 35, y, { align: 'center' });
             } catch (error) {
                 console.error('Erreur graphiques:', error);
             }
