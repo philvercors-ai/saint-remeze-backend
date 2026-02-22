@@ -40,14 +40,15 @@ const upload = multer({
 router.get('/admin/all', optionalAuth, async (req, res) => {
   try {
     console.log('👑 GET /api/remarks/admin/all');
-    const remarks = await Remark.find().sort({ createdAt: -1 });
+    const remarks = await Remark.find()
+      .populate('user', 'name email')  // Récupérer infos user
+      .sort({ createdAt: -1 });
     console.log('✅ Remarques admin:', remarks.length);
     
-    // IMPORTANT : admin.html attend {data: [...]}
     res.json({
       success: true,
       count: remarks.length,
-      data: remarks  // ← Utilise "data" au lieu de "remarks"
+      data: remarks
     });
   } catch (error) {
     console.error('❌ Erreur admin/all:', error);
@@ -55,7 +56,7 @@ router.get('/admin/all', optionalAuth, async (req, res) => {
       success: false, 
       message: 'Erreur serveur', 
       error: error.message,
-      data: []  // Toujours renvoyer data vide en cas d'erreur
+      data: []
     });
   }
 });
@@ -92,7 +93,9 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
 router.get('/', optionalAuth, async (req, res) => {
   try {
     console.log('📋 GET /api/remarks');
-    const remarks = await Remark.find().sort({ createdAt: -1 });
+    const remarks = await Remark.find()
+      .populate('user', 'name email')  // Récupérer infos user
+      .sort({ createdAt: -1 });
     console.log('✅ Remarques trouvées:', remarks.length);
     
     res.json(remarks);
@@ -112,7 +115,8 @@ router.get('/:id', optionalAuth, async (req, res) => {
       return res.status(400).json({ success: false, message: 'ID invalide' });
     }
     
-    const remark = await Remark.findById(req.params.id);
+    const remark = await Remark.findById(req.params.id)
+      .populate('user', 'name email');  // Récupérer infos user
     
     if (!remark) {
       console.log('❌ Remarque non trouvée:', req.params.id);
@@ -128,11 +132,12 @@ router.get('/:id', optionalAuth, async (req, res) => {
 });
 
 // POST nouvelle remarque
-router.post('/', upload.single('photo'), async (req, res) => {
+router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
   try {
     console.log('📥 POST /api/remarks');
     console.log('   Body:', req.body);
     console.log('   File:', req.file ? req.file.filename : 'Aucune photo');
+    console.log('   User:', req.user ? req.user.userId : 'Anonyme');
 
     const { category, title, description, latitude, longitude } = req.body;
 
@@ -151,6 +156,14 @@ router.post('/', upload.single('photo'), async (req, res) => {
       status: 'En attente'
     };
 
+    // ✅ AJOUTER LE USER SI AUTHENTIFIÉ
+    if (req.user && req.user.userId) {
+      remarkData.user = req.user.userId;
+      console.log('👤 Remarque associée au user:', req.user.userId);
+    } else {
+      console.log('👤 Remarque anonyme (pas de user)');
+    }
+
     if (req.file) {
       remarkData.photoUrl = '/uploads/' + req.file.filename;
       console.log('📸 Photo:', remarkData.photoUrl);
@@ -166,6 +179,9 @@ router.post('/', upload.single('photo'), async (req, res) => {
 
     const remark = new Remark(remarkData);
     await remark.save();
+
+    // Populate le user avant de renvoyer
+    await remark.populate('user', 'name email');
 
     console.log('✅ Remarque créée:', remark._id);
 
@@ -204,7 +220,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    );
+    ).populate('user', 'name email');
     
     if (!remark) {
       return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
