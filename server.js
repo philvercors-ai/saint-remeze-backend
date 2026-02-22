@@ -9,7 +9,7 @@ const app = express();
 
 // ===== CONFIGURATION CORS =====
 const allowedOrigins = [
-  'saint-remeze-frontend.vercel.app
+  'https://saint-remeze-frontend.vercel.app', // Ajout du https:// et vérification du guillemet
   'http://localhost:3000',
   'http://localhost:10000',
   process.env.CORS_ORIGIN,
@@ -19,18 +19,25 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function(origin, callback) {
+    // Autorise les requêtes sans origine (comme Postman ou les pings internes)
     if (!origin) return callback(null, true);
-    if (allowedOrigins.some(allowed => {
+    
+    const isAllowed = allowedOrigins.some(allowed => {
       if (typeof allowed === 'string') return allowed === origin;
       if (allowed instanceof RegExp) return allowed.test(origin);
       return false;
-    })) {
+    });
+
+    if (isAllowed) {
       callback(null, true);
     } else {
+      console.error('❌ Origine rejetée par CORS:', origin);
       callback(new Error('Not allowed by CORS'));
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 app.use(express.json());
