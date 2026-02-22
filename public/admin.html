@@ -120,29 +120,68 @@
 
     <div id="editModal" class="modal">
         <div class="modal-content">
-            <h2 id="modalTitle" style="margin-bottom: 1rem;">Détails</h2>
+            <h2 id="modalTitle" style="margin-bottom: 0.5rem;">Détails</h2>
+            <p id="modalCategory" style="color: #64748b; margin-bottom: 1rem; font-size: 14px;"></p>
+            
             <form id="editForm">
                 <input type="hidden" id="editId">
-                <div class="form-group">
-                    <label>Statut</label>
-                    <select id="editStatus">
-                        <option value="En attente">En attente</option>
-                        <option value="En cours">En cours</option>
-                        <option value="Terminée">Terminée</option>
-                        <option value="Rejetée">Rejetée</option>
-                    </select>
+                
+                <!-- Informations de la remarque -->
+                <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
+                    <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 0.5rem;">📋 Informations</h3>
+                    <div id="remarkInfo" style="font-size: 13px; color: #475569;"></div>
                 </div>
-                <div class="form-group"><label>Assigné à</label><input type="text" id="editAssign"></div>
-                <div class="form-group"><label>Notes Admin</label><textarea id="editNotes" rows="3"></textarea></div>
-                <div id="imagePreview" style="margin-top: 1rem;"></div>
-                <div style="margin-top: 2rem; display: flex; gap: 1rem;">
-                    <button type="button" class="btn btn-primary" onclick="saveEdit()">Enregistrer</button>
-                    <button type="button" class="btn btn-danger" onclick="deleteRemark()" style="margin-left: auto;">Supprimer</button>
-                    <button type="button" class="btn" onclick="closeModal()" style="background: #eee;">Fermer</button>
+                
+                <!-- Description -->
+                <div class="form-group">
+                    <label style="font-weight: 600;">Description</label>
+                    <div id="remarkDescription" style="padding: 0.75rem; background: #f8fafc; border-radius: 6px; min-height: 60px; font-size: 14px; color: #334155; line-height: 1.6;"></div>
+                </div>
+                
+                <!-- Photo -->
+                <div id="photoSection" style="display: none; margin-bottom: 1rem;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">📸 Photo</label>
+                    <div id="imagePreview" style="border-radius: 8px; overflow: hidden;"></div>
+                </div>
+                
+                <!-- Localisation -->
+                <div id="locationSection" style="display: none; margin-bottom: 1rem;">
+                    <label style="font-weight: 600; display: block; margin-bottom: 0.5rem;">📍 Localisation</label>
+                    <div id="remarkLocation" style="padding: 0.75rem; background: #f0f9ff; border-radius: 6px; font-size: 13px; font-family: monospace;"></div>
+                </div>
+                
+                <!-- Gestion admin -->
+                <div style="border-top: 2px solid #e2e8f0; padding-top: 1rem; margin-top: 1rem;">
+                    <h3 style="font-size: 14px; font-weight: 600; margin-bottom: 1rem;">⚙️ Gestion</h3>
+                    
+                    <div class="form-group">
+                        <label>Statut</label>
+                        <select id="editStatus">
+                            <option value="En attente">En attente</option>
+                            <option value="En cours">En cours</option>
+                            <option value="Terminée">Terminée</option>
+                            <option value="Rejetée">Rejetée</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Assigné à</label>
+                        <input type="text" id="editAssign" placeholder="Nom du responsable">
+                    </div>
+                    <div class="form-group">
+                        <label>Notes Admin</label>
+                        <textarea id="editNotes" rows="3" placeholder="Notes internes..."></textarea>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1.5rem; display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-primary" onclick="saveEdit()">💾 Enregistrer</button>
+                    <button type="button" class="btn btn-danger" onclick="deleteRemark()">🗑️ Supprimer</button>
+                    <button type="button" class="btn" onclick="closeModal()" style="background: #e2e8f0; margin-left: auto;">Fermer</button>
                 </div>
             </form>
         </div>
     </div>
+
 
     <script>
         const API_URL = 'https://saint-remeze-backend.onrender.com';
@@ -224,12 +263,74 @@
         // --- ACTIONS ---
         function openEdit(id) {
             const r = allData.find(x => x._id === id);
-            document.getElementById('editId').value = r._id;
+            if (!r) return;
+            
+            // Titre et catégorie
             document.getElementById('modalTitle').innerText = r.title;
+            document.getElementById('modalCategory').innerText = `Catégorie: ${r.category}`;
+            
+            // Informations générales
+            const userName = r.user?.name || r.name || 'Anonyme';
+            const userEmail = r.user?.email || r.email || 'N/A';
+            const createdDate = new Date(r.createdAt).toLocaleDateString('fr-FR', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            document.getElementById('remarkInfo').innerHTML = `
+                <div style="margin-bottom: 6px;"><strong>Citoyen:</strong> ${userName}</div>
+                <div style="margin-bottom: 6px;"><strong>Email:</strong> ${userEmail}</div>
+                <div><strong>Date:</strong> ${createdDate}</div>
+            `;
+            
+            // Description
+            document.getElementById('remarkDescription').innerText = r.description || 'Pas de description';
+            
+            // Photo
+            const photoSection = document.getElementById('photoSection');
+            const photoUrl = r.photoUrl || r.image;
+            if (photoUrl) {
+                const fullPhotoUrl = photoUrl.startsWith('http') ? photoUrl : `${API_URL}${photoUrl}`;
+                document.getElementById('imagePreview').innerHTML = `
+                    <img src="${fullPhotoUrl}" 
+                         style="max-width: 100%; height: auto; display: block; border-radius: 8px;"
+                         onerror="this.parentElement.innerHTML='<p style=\'color:#64748b;padding:1rem;text-align:center;\'>Photo non disponible</p>'">
+                `;
+                photoSection.style.display = 'block';
+            } else {
+                photoSection.style.display = 'none';
+            }
+            
+            // Localisation
+            const locationSection = document.getElementById('locationSection');
+            if (r.location && r.location.coordinates && r.location.coordinates.length === 2) {
+                const [lng, lat] = r.location.coordinates;
+                document.getElementById('remarkLocation').innerHTML = `
+                    <div style="margin-bottom: 8px;">
+                        Latitude: ${lat.toFixed(6)}<br>
+                        Longitude: ${lng.toFixed(6)}
+                    </div>
+                    <a href="https://www.google.com/maps?q=${lat},${lng}" 
+                       target="_blank" 
+                       style="color: #2563eb; text-decoration: none; font-weight: 600;">
+                        🗺️ Voir sur Google Maps →
+                    </a>
+                `;
+                locationSection.style.display = 'block';
+            } else {
+                locationSection.style.display = 'none';
+            }
+            
+            // Champs admin
+            document.getElementById('editId').value = r._id;
             document.getElementById('editStatus').value = r.status;
             document.getElementById('editAssign').value = r.assignedTo || '';
             document.getElementById('editNotes').value = r.adminNotes || '';
-            document.getElementById('imagePreview').innerHTML = r.image ? `<img src="${r.image}" style="max-width:100%; border-radius:8px;">` : 'Pas de photo';
+            
+            // Ouvrir la modal
             document.getElementById('editModal').classList.add('active');
         }
         function closeModal() { document.getElementById('editModal').classList.remove('active'); }
@@ -290,56 +391,29 @@
                 return str.replace(/[^\p{L}\p{N}\s,.'\-\/!?;:()]/gu, '').trim();
             };
 
-                        async function createChart(labels, data, colors) {
+            async function createChart(labels, data, colors) {
                 return new Promise(res => {
                     const canvas = document.createElement('canvas');
-                    canvas.width = 400;
-                    canvas.height = 400;
+                    canvas.width = 400; canvas.height = 400;
                     const ctx = canvas.getContext('2d');
                     
-                    // Créer le graphique Chart.js
-                    const chart = new Chart(ctx, {
+                    // FORCER FOND BLANC
+                    ctx.fillStyle = "white";
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                    new Chart(ctx, {
                         type: 'pie',
                         data: {
                             labels: labels,
-                            datasets: [{
-                                data: data,
-                                backgroundColor: colors,
-                                borderWidth: 2,
-                                borderColor: '#ffffff'
-                            }]
+                            datasets: [{ data: data, backgroundColor: colors, borderWidth: 0 }]
                         },
-                        options: {
-                            responsive: false,
-                            animation: false,
-                            plugins: {
-                                legend: { display: false }
-                            }
+                        options: { 
+                            responsive: false, 
+                            animation: false, 
+                            plugins: { legend: { display: false } }
                         }
                     });
-                    
-                    // Attendre le rendu puis créer un canvas avec fond blanc
-                    setTimeout(() => {
-                        // Canvas final
-                        const finalCanvas = document.createElement('canvas');
-                        finalCanvas.width = 400;
-                        finalCanvas.height = 400;
-                        const finalCtx = finalCanvas.getContext('2d');
-                        
-                        // 1. Dessiner fond blanc
-                        finalCtx.fillStyle = '#ffffff';
-                        finalCtx.fillRect(0, 0, finalCanvas.width, finalCanvas.height);
-                        
-                        // 2. Dessiner le graphique par-dessus
-                        finalCtx.drawImage(canvas, 0, 0);
-                        
-                        // 3. Convertir en JPEG (fond blanc garanti)
-                        const imageData = finalCanvas.toDataURL('image/jpeg', 0.95);
-                        
-                        // Nettoyer
-                        chart.destroy();
-                        res(imageData);
-                    }, 500);
+                    setTimeout(() => res(canvas.toDataURL('image/jpeg', 0.9)), 400);
                 });
             }
 
