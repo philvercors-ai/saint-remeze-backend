@@ -36,18 +36,44 @@ const upload = multer({
   }
 });
 
-// GET toutes les remarques - RETOURNE UN TABLEAU DIRECT
+// GET toutes les remarques - Renvoie tableau direct
 router.get('/', optionalAuth, async (req, res) => {
   try {
     console.log('📋 GET /api/remarks');
     const remarks = await Remark.find().sort({ createdAt: -1 });
     console.log('✅ Remarques trouvées:', remarks.length);
     
-    // IMPORTANT : Renvoyer directement le tableau, pas un objet
+    // IMPORTANT : Tableau direct pour le frontend
     res.json(remarks);
   } catch (error) {
-    console.error('❌ Erreur récupération remarques:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
+    console.error('❌ Erreur GET remarks:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// GET remarque par ID - IMPORTANT pour la page détail
+router.get('/:id', optionalAuth, async (req, res) => {
+  try {
+    console.log('📋 GET /api/remarks/' + req.params.id);
+    
+    // Vérifier que l'ID est valide
+    if (!req.params.id.match(/^[0-9a-fA-F]{24}$/)) {
+      console.log('❌ ID invalide:', req.params.id);
+      return res.status(400).json({ success: false, message: 'ID invalide' });
+    }
+    
+    const remark = await Remark.findById(req.params.id);
+    
+    if (!remark) {
+      console.log('❌ Remarque non trouvée:', req.params.id);
+      return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
+    }
+    
+    console.log('✅ Remarque trouvée:', remark._id);
+    res.json(remark);
+  } catch (error) {
+    console.error('❌ Erreur GET remark by ID:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 });
 
@@ -55,13 +81,13 @@ router.get('/', optionalAuth, async (req, res) => {
 router.post('/', upload.single('photo'), async (req, res) => {
   try {
     console.log('📥 POST /api/remarks');
-    console.log('   Données:', req.body);
-    console.log('   Fichier:', req.file ? req.file.filename : 'Aucune photo');
+    console.log('   Body:', req.body);
+    console.log('   File:', req.file ? req.file.filename : 'Aucune photo');
 
     const { category, title, description, latitude, longitude } = req.body;
 
     if (!category || !title) {
-      console.log('❌ Validation échouée: catégorie ou titre manquant');
+      console.log('❌ Validation: catégorie ou titre manquant');
       return res.status(400).json({ 
         success: false, 
         message: 'Catégorie et titre sont obligatoires' 
@@ -100,7 +126,7 @@ router.post('/', upload.single('photo'), async (req, res) => {
     });
 
   } catch (error) {
-    console.error('❌ Erreur création remarque:', error);
+    console.error('❌ Erreur POST remark:', error);
     
     if (req.file) {
       try {
@@ -112,47 +138,40 @@ router.post('/', upload.single('photo'), async (req, res) => {
 
     res.status(500).json({ 
       success: false, 
-      message: 'Erreur lors de la création de la remarque',
+      message: 'Erreur création remarque',
       error: error.message 
     });
-  }
-});
-
-// GET remarque par ID
-router.get('/:id', optionalAuth, async (req, res) => {
-  try {
-    const remark = await Remark.findById(req.params.id);
-    if (!remark) {
-      return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
-    }
-    res.json(remark);
-  } catch (error) {
-    console.error('Erreur récupération remarque:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
   }
 });
 
 // PUT mettre à jour remarque
 router.put('/:id', optionalAuth, async (req, res) => {
   try {
+    console.log('📝 PUT /api/remarks/' + req.params.id);
+    
     const remark = await Remark.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     );
+    
     if (!remark) {
       return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
     }
+    
+    console.log('✅ Remarque mise à jour:', remark._id);
     res.json({ success: true, remark });
   } catch (error) {
-    console.error('Erreur mise à jour remarque:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
+    console.error('❌ Erreur PUT remark:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 });
 
 // DELETE supprimer remarque
 router.delete('/:id', optionalAuth, async (req, res) => {
   try {
+    console.log('🗑️  DELETE /api/remarks/' + req.params.id);
+    
     const remark = await Remark.findById(req.params.id);
     if (!remark) {
       return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
@@ -162,14 +181,17 @@ router.delete('/:id', optionalAuth, async (req, res) => {
       const photoPath = path.join(__dirname, '..', remark.photoUrl);
       if (fs.existsSync(photoPath)) {
         fs.unlinkSync(photoPath);
+        console.log('📸 Photo supprimée');
       }
     }
 
     await remark.deleteOne();
+    console.log('✅ Remarque supprimée:', req.params.id);
+    
     res.json({ success: true, message: 'Remarque supprimée' });
   } catch (error) {
-    console.error('Erreur suppression remarque:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur' });
+    console.error('❌ Erreur DELETE remark:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 });
 
