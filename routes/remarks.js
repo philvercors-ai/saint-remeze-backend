@@ -36,50 +36,54 @@ const upload = multer({
   }
 });
 
-// ===== ROUTE ADMIN - TOUTES LES REMARQUES =====
+// ===== ROUTE ADMIN - Compatible avec admin.html =====
 router.get('/admin/all', optionalAuth, async (req, res) => {
   try {
     console.log('👑 GET /api/remarks/admin/all');
     const remarks = await Remark.find().sort({ createdAt: -1 });
     console.log('✅ Remarques admin:', remarks.length);
     
+    // IMPORTANT : admin.html attend {data: [...]}
     res.json({
       success: true,
       count: remarks.length,
-      remarks: remarks
+      data: remarks  // ← Utilise "data" au lieu de "remarks"
     });
   } catch (error) {
     console.error('❌ Erreur admin/all:', error);
-    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Erreur serveur', 
+      error: error.message,
+      data: []  // Toujours renvoyer data vide en cas d'erreur
+    });
   }
 });
 
-// ===== ROUTE ADMIN - STATS =====
-router.get('/admin/stats', optionalAuth, async (req, res) => {
+// DELETE admin - Route spéciale pour admin
+router.delete('/admin/:id', optionalAuth, async (req, res) => {
   try {
-    console.log('📊 GET /api/remarks/admin/stats');
-    const remarks = await Remark.find();
+    console.log('🗑️  DELETE /api/remarks/admin/' + req.params.id);
     
-    const stats = {
-      total: remarks.length,
-      byStatus: {
-        'En attente': remarks.filter(r => r.status === 'En attente').length,
-        'En cours': remarks.filter(r => r.status === 'En cours').length,
-        'Terminée': remarks.filter(r => r.status === 'Terminée').length,
-        'Rejetée': remarks.filter(r => r.status === 'Rejetée').length
-      },
-      byCategory: {}
-    };
+    const remark = await Remark.findById(req.params.id);
+    if (!remark) {
+      return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
+    }
+
+    if (remark.photoUrl) {
+      const photoPath = path.join(__dirname, '..', remark.photoUrl);
+      if (fs.existsSync(photoPath)) {
+        fs.unlinkSync(photoPath);
+        console.log('📸 Photo supprimée');
+      }
+    }
+
+    await remark.deleteOne();
+    console.log('✅ Remarque supprimée par admin:', req.params.id);
     
-    // Compter par catégorie
-    remarks.forEach(r => {
-      stats.byCategory[r.category] = (stats.byCategory[r.category] || 0) + 1;
-    });
-    
-    console.log('✅ Stats calculées');
-    res.json({ success: true, stats });
+    res.json({ success: true, message: 'Remarque supprimée' });
   } catch (error) {
-    console.error('❌ Erreur stats:', error);
+    console.error('❌ Erreur DELETE admin:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 });
@@ -214,7 +218,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
   }
 });
 
-// DELETE supprimer remarque
+// DELETE supprimer remarque (citoyens)
 router.delete('/:id', optionalAuth, async (req, res) => {
   try {
     console.log('🗑️  DELETE /api/remarks/' + req.params.id);
