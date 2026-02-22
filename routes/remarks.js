@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const Remark = require('../models/Remark');
-const auth = require('../middleware/auth');
+const { optionalAuth } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
 
-// Configuration multer pour upload photos
+// Configuration multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     const uploadDir = path.join(__dirname, '../uploads');
@@ -23,7 +23,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage: storage,
-  limits: { fileSize: 10 * 1024 * 1024 }, // 10MB max
+  limits: { fileSize: 10 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|gif|webp/;
     const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
@@ -36,8 +36,8 @@ const upload = multer({
   }
 });
 
-// GET toutes les remarques
-router.get('/', auth, async (req, res) => {
+// GET toutes les remarques (auth optionnelle)
+router.get('/', optionalAuth, async (req, res) => {
   try {
     const remarks = await Remark.find().sort({ createdAt: -1 });
     res.json(remarks);
@@ -47,11 +47,11 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
-// POST nouvelle remarque (avec photo optionnelle)
-router.post('/', auth, upload.single('photo'), async (req, res) => {
+// POST nouvelle remarque (sans auth pour les citoyens)
+router.post('/', upload.single('photo'), async (req, res) => {
   try {
     console.log('📥 Données reçues:', req.body);
-    console.log('📸 Fichier reçu:', req.file);
+    console.log('📸 Fichier reçu:', req.file ? req.file.filename : 'Aucune photo');
 
     const { category, title, description, latitude, longitude } = req.body;
 
@@ -66,13 +66,13 @@ router.post('/', auth, upload.single('photo'), async (req, res) => {
       category,
       title,
       description: description || '',
-      user: req.user.userId,
       status: 'En attente'
     };
 
     // Ajouter la photo si présente
     if (req.file) {
       remarkData.photoUrl = '/uploads/' + req.file.filename;
+      console.log('✅ Photo ajoutée:', remarkData.photoUrl);
     }
 
     // Ajouter la localisation si présente
@@ -81,12 +81,13 @@ router.post('/', auth, upload.single('photo'), async (req, res) => {
         type: 'Point',
         coordinates: [parseFloat(longitude), parseFloat(latitude)]
       };
+      console.log('✅ Localisation ajoutée:', remarkData.location);
     }
 
     const remark = new Remark(remarkData);
     await remark.save();
 
-    console.log('✅ Remarque créée:', remark._id);
+    console.log('✅ Remarque créée avec succès:', remark._id);
 
     res.status(201).json({ 
       success: true, 
@@ -99,7 +100,11 @@ router.post('/', auth, upload.single('photo'), async (req, res) => {
     
     // Supprimer le fichier uploadé en cas d'erreur
     if (req.file) {
-      fs.unlinkSync(req.file.path);
+      try {
+        fs.unlinkSync(req.file.path);
+      } catch (e) {
+        console.error('Erreur suppression fichier:', e);
+      }
     }
 
     res.status(500).json({ 
@@ -111,7 +116,7 @@ router.post('/', auth, upload.single('photo'), async (req, res) => {
 });
 
 // GET remarque par ID
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', optionalAuth, async (req, res) => {
   try {
     const remark = await Remark.findById(req.params.id);
     if (!remark) {
@@ -124,8 +129,8 @@ router.get('/:id', auth, async (req, res) => {
   }
 });
 
-// PUT mettre à jour remarque
-router.put('/:id', auth, async (req, res) => {
+// PUT mettre à jour remarque (auth optionnelle)
+router.put('/:id', optionalAuth, async (req, res) => {
   try {
     const remark = await Remark.findByIdAndUpdate(
       req.params.id,
@@ -142,8 +147,8 @@ router.put('/:id', auth, async (req, res) => {
   }
 });
 
-// DELETE supprimer remarque
-router.delete('/:id', auth, async (req, res) => {
+// DELETE supprimer remarque (auth optionnelle)
+router.delete('/:id', optionalAuth, async (req, res) => {
   try {
     const remark = await Remark.findById(req.params.id);
     if (!remark) {
