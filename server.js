@@ -39,7 +39,7 @@ app.get('/admin', (req, res) => {
 // Routes API
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/remarks', require('./routes/remarks'));
-// Après les autres routes (ligne ~40)
+app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/archive', require('./routes/archive'));
 
 // ===== TÂCHE CRON : Archivage automatique quotidien =====
