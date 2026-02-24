@@ -97,7 +97,15 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
 router.get('/', optionalAuth, async (req, res) => {
   try {
     console.log('📋 GET /api/remarks');
-    const remarks = await Remark.find({ archived: false })
+
+    // Filtrer par utilisateur connecté si authentifié
+    const query = { archived: false };
+    if (req.user && req.user.userId) {
+      query.user = req.user.userId;
+      console.log('👤 Filtrage pour user:', req.user.userId);
+    }
+
+    const remarks = await Remark.find(query)
       .populate('user', 'name email')
       .sort({ createdAt: -1 });
     
