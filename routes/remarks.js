@@ -208,17 +208,43 @@ router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
 router.put('/:id', optionalAuth, async (req, res) => {
   try {
     console.log('📝 PUT /api/remarks/' + req.params.id);
-    
+
+    const oldRemark = await Remark.findById(req.params.id);
+    if (!oldRemark) {
+      return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
+    }
+    const oldStatus = oldRemark.status;
+
     const remark = await Remark.findByIdAndUpdate(
       req.params.id,
       req.body,
       { new: true, runValidators: true }
     ).populate('user', 'name email');
-    
-    if (!remark) {
-      return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
+
+    // Créer une notification si le statut a changé
+    if (req.body.status && req.body.status !== oldStatus && remark.user) {
+      try {
+        const Notification = require('../models/Notification');
+        const statusLabels = {
+          'En attente': 'en attente',
+          'En cours': 'en cours de traitement',
+          'Terminée': 'terminée',
+          'Rejetée': 'rejetée'
+        };
+        const label = statusLabels[req.body.status] || req.body.status;
+        await Notification.create({
+          userId: remark.user._id,
+          title: `Mise à jour : ${remark.title}`,
+          message: `Votre signalement "${remark.title}" est maintenant ${label}.`,
+          remarkId: remark._id,
+          read: false
+        });
+        console.log('🔔 Notification créée pour user:', remark.user._id);
+      } catch (notifError) {
+        console.error('❌ Erreur création notification:', notifError);
+      }
     }
-    
+
     console.log('✅ Remarque mise à jour:', remark._id);
     res.json({ success: true, remark });
   } catch (error) {
