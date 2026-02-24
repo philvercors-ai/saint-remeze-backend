@@ -234,6 +234,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
         const label = statusLabels[req.body.status] || req.body.status;
         await Notification.create({
           userId: remark.user._id,
+          type: 'status_change',
           title: `Mise à jour : ${remark.title}`,
           message: `Votre signalement "${remark.title}" est maintenant ${label}.`,
           remarkId: remark._id,
