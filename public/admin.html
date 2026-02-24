@@ -86,8 +86,8 @@
         <div class="header">
             <div><h1 style="font-size: 1.25rem;">Saint-Remèze - Gestion</h1></div>
             <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-success" onclick="exportPDF()">📄 PDF</button>
-                <button class="btn btn-secondary" onclick="exportCSV()">📊 CSV</button>
+                <button class="btn btn-success" onclick="exportPDF(window.currentTab === 'active' ? window.allData : window.archivedData, window.currentTab)">📄 PDF</button>
+                <button class="btn btn-secondary" onclick="exportCSV(window.currentTab === 'active' ? window.allData : window.archivedData, window.currentTab)">📊 CSV</button>
                 <button class="btn btn-danger" onclick="logout()">Déconnexion</button>
             </div>
         </div>
@@ -204,9 +204,12 @@
 
     <script>
         const API_URL = 'https://saint-remeze-backend.onrender.com';
-        let allData = [];
-        let archivedData = [];
-        let currentTab = 'active';
+        window.allData = [];
+        let allData = window.allData;
+        window.archivedData = [];
+        let archivedData = window.archivedData;
+        window.currentTab = 'active';
+        let currentTab = window.currentTab;
         let stats = {};
 
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
@@ -245,12 +248,14 @@
                 });
                 const jsonActive = await resActive.json();
                 allData = jsonActive.data || [];
+                window.allData = allData;
                 
                 const resArchived = await fetch(`${API_URL}/api/archive/archived`, {
                     headers: {'Authorization': `Bearer ${token}`}
                 });
                 const jsonArchived = await resArchived.json();
                 archivedData = jsonArchived.data || [];
+                window.archivedData = archivedData;
                 
                 const resStats = await fetch(`${API_URL}/api/archive/stats`, {
                     headers: {'Authorization': `Bearer ${token}`}
@@ -345,6 +350,7 @@
 
         function switchTab(tab) {
             currentTab = tab;
+            window.currentTab = currentTab;
             document.getElementById('tabActive').classList.toggle('active', tab === 'active');
             document.getElementById('tabArchived').classList.toggle('active', tab === 'archived');
             document.getElementById('archiveInfo').style.display = tab === 'archived' ? 'block' : 'none';
