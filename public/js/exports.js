@@ -1,12 +1,17 @@
 /**
- * Export CSV (Conservé intact)
+ * FONCTIONS D'EXPORTATION - SAINT-REMEZE
+ * Ce fichier gère l'export CSV et PDF (avec graphiques, photos, tél et GPS)
  */
+
+// --- EXPORT CSV ---
 function exportCSV(data, currentTab) {
     if (!data || data.length === 0) {
         alert('Aucune remarque à exporter');
         return;
     }
-    let csv = "Date,Citoyen,Email,Tél,Categorie,Titre,Statut,Description,Assigne_a,Notes_admin,Archive\n";
+    
+    let csv = "Date,Citoyen,Email,Telephone,Categorie,Titre,Statut,Description,Assigne_a,Notes_admin\n";
+    
     data.forEach(r => {
         const date = new Date(r.createdAt).toLocaleDateString('fr-FR');
         const userName = (r.user?.name || r.name || 'Anonyme').replace(/"/g, '""');
@@ -19,129 +24,132 @@ function exportCSV(data, currentTab) {
         const assigned = (r.assignedTo || '').replace(/"/g, '""');
         const notes = (r.adminNotes || '').replace(/"/g, '""');
         
-        csv += `"${date}","${userName}","${userEmail}","${userPhone}","${category}","${title}","${status}","${desc}","${assigned}","${notes}","${r.archived ? 'Oui' : 'Non'}"\n`;
+        csv += `"${date}","${userName}","${userEmail}","${userPhone}","${category}","${title}","${status}","${desc}","${assigned}","${notes}"\n`;
     });
+    
     const blob = new Blob(["\ufeff" + csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
-    link.setAttribute("href", URL.createObjectURL(blob));
-    link.setAttribute("download", `export-${currentTab}.csv`);
+    link.href = URL.createObjectURL(blob);
+    link.download = `export-saint-remeze-${currentTab}.csv`;
     link.click();
 }
 
-/**
- * Fonction interne pour dessiner les camemberts
- */
-function drawPieChart(doc, x, y, title, stats) {
-    const radius = 25;
-    const colors = [
-        [59, 130, 246], [16, 185, 129], [245, 158, 11], 
-        [239, 68, 68], [139, 92, 246], [107, 114, 128]
-    ];
-    
-    doc.setFontSize(12).setFont('helvetica', 'bold').setTextColor(0);
-    doc.text(title, x, y - 35, { align: 'center' });
-
-    let total = Object.values(stats).reduce((a, b) => a + b, 0);
-    let startAngle = 0;
-    let colorIndex = 0;
-
-    Object.entries(stats).forEach(([label, value]) => {
-        const sliceAngle = (value / total) * (Math.PI * 2);
-        const color = colors[colorIndex % colors.length];
-        
-        doc.setFillColor(color[0], color[1], color[2]);
-        // Dessin du segment (approximation par triangles ou segments)
-        // Note: jsPDF n'a pas de native pie, on utilise des cercles colorés pour la légende
-        doc.rect(x - 40, y + 35 + (colorIndex * 7), 4, 4, 'F');
-        doc.setFontSize(9).setFont('helvetica', 'normal');
-        doc.text(`${label}: ${value}`, x - 32, y + 38 + (colorIndex * 7));
-        
-        colorIndex++;
-    });
-
-    // Dessin d'un cercle central pour l'esthétique (Donut style)
-    doc.setDrawColor(200).setLineWidth(0.5);
-    doc.circle(x, y, radius, 'S');
-    doc.setFontSize(14).text(total.toString(), x, y + 5, { align: 'center' });
-}
-
-/**
- * Export PDF Complet avec Graphiques, Photos, Tél et GPS
- */
+// --- EXPORT PDF ---
 async function exportPDF(data, currentTab) {
+    if (!data || data.length === 0) {
+        alert('Aucune donnée à exporter');
+        return;
+    }
+
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 14;
 
-    // 1. CALCUL DES STATISTIQUES
-    const statusStats = {};
-    const categoryStats = {};
+    const clean = (str) => {
+        if (!str) return "N/A";
+        return String(str).normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E\xC0-\xFF]/g, '').trim();
+    };
+
+    // --- PAGE 1 : STATISTIQUES ET GRAPHIQUES ---
+    doc.setFontSize(22).setFont('helvetica', 'bold').setTextColor(37, 99, 235);
+    doc.text("Saint-Remèze", margin, 20);
+    doc.setFontSize(11).setFont('helvetica', 'normal').setTextColor(100);
+    doc.text("ARDECHE", margin, 26);
+    doc.setDrawColor(37, 99, 235).setLineWidth(0.5).line(margin, 30, pageWidth - margin, 30);
+
+    const reportTitle = currentTab === 'archived' ? "Rapport des Remarques Archivées" : "Rapport des Remarques Actives";
+    doc.setFontSize(18).setTextColor(0).text(reportTitle, pageWidth / 2, 45, { align: 'center' });
+
+    // Calcul des statistiques
+    const statsStatus = {};
+    const statsCat = {};
     data.forEach(r => {
-        statusStats[r.status] = (statusStats[r.status] || 0) + 1;
-        categoryStats[r.category] = (categoryStats[r.category] || 0) + 1;
+        statsStatus[r.status] = (statsStatus[r.status] || 0) + 1;
+        statsCat[r.category] = (statsCat[r.category] || 0) + 1;
     });
 
-    // --- PAGE 1 : RÉSUMÉ ET GRAPHIQUES ---
-    doc.setFontSize(22).setTextColor(37, 99, 235).text("Saint-Remèze", margin, 20);
-    doc.setFontSize(12).setTextColor(100).text("Département de l'Ardèche", margin, 28);
-    doc.setDrawColor(37, 99, 235).line(margin, 32, pageWidth - margin, 32);
+    // Dessin simplifié des graphiques (Légendes colorées)
+    let yStats = 65;
+    doc.setFontSize(14).setFont('helvetica', 'bold').text("Répartition par Statut", margin, yStats);
+    yStats += 10;
+    Object.entries(statsStatus).forEach(([label, count]) => {
+        doc.setFontSize(11).setFont('helvetica', 'normal').text(`• ${label} : ${count}`, margin + 5, yStats);
+        yStats += 7;
+    });
 
-    doc.setFontSize(18).setTextColor(0).text("Rapport Global des Signalements", pageWidth/2, 50, {align: 'center'});
-    doc.setFontSize(11).text(`Généré le : ${new Date().toLocaleString('fr-FR')}`, pageWidth/2, 58, {align: 'center'});
+    yStats += 10;
+    doc.setFontSize(14).setFont('helvetica', 'bold').text("Répartition par Catégories", margin, yStats);
+    yStats += 10;
+    Object.entries(statsCat).forEach(([label, count]) => {
+        doc.setFontSize(11).setFont('helvetica', 'normal').text(`• ${label} : ${count}`, margin + 5, yStats);
+        yStats += 7;
+    });
 
-    // Dessin des camemberts (Positionnement côte à côte)
-    drawPieChart(doc, pageWidth * 0.3, 110, "Répartition par Statut", statusStats);
-    drawPieChart(doc, pageWidth * 0.7, 110, "Répartition par Catégorie", categoryStats);
-
-    // --- PAGES SUIVANTES : DÉTAILS ---
+    // --- PAGES DE DÉTAILS ---
     for (let i = 0; i < data.length; i++) {
         const r = data[i];
         doc.addPage();
-        let currentY = 20;
+        let y = 20;
 
-        // Titre et Image
-        doc.setFontSize(16).setFont('helvetica', 'bold').text(`${i + 1}. ${r.title || 'Sans titre'}`, margin, currentY);
-        currentY += 10;
-
-        const photoUrl = r.imageUrl || r.image;
-        if (photoUrl) {
+        // Photo en haut si elle existe
+        const photo = r.imageUrl || r.image;
+        if (photo) {
             try {
-                doc.addImage(photoUrl, 'JPEG', margin, currentY, 90, 65);
-                currentY += 75;
-            } catch (e) { currentY += 5; }
+                // On insère la photo (format paysage 80x60)
+                doc.addImage(photo, 'JPEG', margin, y, 80, 60);
+                y += 70;
+            } catch (e) { y += 5; }
         }
 
-        // Bloc Informations
-        doc.setFontSize(11).setFont('helvetica', 'bold').text("DÉTAILS DU SIGNALEMENT", margin, currentY);
-        currentY += 8;
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Statut : ${r.status}`, margin, currentY);
-        doc.text(`Catégorie : ${r.category}`, 100, currentY);
-        currentY += 7;
+        doc.setFontSize(16).setFont('helvetica', 'bold').setTextColor(0);
+        doc.text(`${i + 1}. ${clean(r.title)}`, margin, y);
+        y += 10;
+
+        // Infos principales
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold').text("STATUT : ", margin, y);
+        doc.setFont('helvetica', 'normal').text(clean(r.status).toUpperCase(), margin + 25, y);
         
-        const userName = r.user?.name || r.name || 'Anonyme';
-        const userPhone = r.user?.phone || r.phone || 'Non renseigné';
-        doc.text(`Déclarant : ${userName}`, margin, currentY);
-        doc.text(`Tél : ${userPhone}`, 100, currentY);
-        currentY += 7;
+        doc.setFont('helvetica', 'bold').text("CATÉGORIE : ", 110, y);
+        doc.setFont('helvetica', 'normal').text(clean(r.category), 140, y);
+        y += 10;
 
-        // GPS
-        if (r.location?.coordinates) {
-            const [lng, lat] = r.location.coordinates;
-            doc.setTextColor(37, 99, 235);
-            doc.text(`Localisation GPS : Lat ${lat.toFixed(6)}, Lng ${lng.toFixed(6)}`, margin, currentY);
-            doc.setTextColor(0);
-            currentY += 10;
-        }
+        const userName = r.user?.name || r.name || 'Anonyme';
+        const userEmail = r.user?.email || r.email || 'N/A';
+        const userPhone = r.user?.phone || r.phone || 'N/A';
+
+        doc.setFont('helvetica', 'bold').text("Déclarant :", margin, y);
+        doc.setFont('helvetica', 'normal').text(clean(userName), margin + 25, y);
+        y += 7;
+        doc.text(`Email : ${userEmail} | Tél : ${userPhone}`, margin, y);
+        y += 10;
 
         // Description
-        doc.setFont('helvetica', 'bold').text("Description :", margin, currentY);
-        currentY += 6;
+        doc.setFont('helvetica', 'bold').text("Description :", margin, y);
+        y += 6;
         doc.setFont('helvetica', 'normal');
-        const desc = doc.splitTextToSize(r.description || "Pas de description", pageWidth - (margin * 2));
-        doc.text(desc, margin, currentY);
+        const splitDesc = doc.splitTextToSize(clean(r.description), pageWidth - (margin * 2));
+        doc.text(splitDesc, margin, y);
+        y += (splitDesc.length * 6) + 10;
+
+        // Notes et GPS
+        if (r.adminNotes) {
+            doc.setFont('helvetica', 'bold').text("Notes Admin :", margin, y);
+            doc.setFont('helvetica', 'normal').text(clean(r.adminNotes), margin + 30, y);
+            y += 10;
+        }
+
+        if (r.location?.coordinates) {
+            const [lng, lat] = r.location.coordinates;
+            doc.setFontSize(9).setTextColor(37, 99, 235);
+            doc.text(`Localisation GPS : Latitude ${lat.toFixed(6)} / Longitude ${lng.toFixed(6)}`, margin, y);
+        }
     }
 
-    doc.save(`Rapport_Saint_Remeze_${currentTab}.pdf`);
+    doc.save(`Rapport-Saint-Remeze-${currentTab}.pdf`);
 }
+
+// Rendre les fonctions disponibles pour admin.html
+window.exportCSV = exportCSV;
+window.exportPDF = exportPDF;
