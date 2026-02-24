@@ -222,6 +222,8 @@ router.put('/:id', optionalAuth, async (req, res) => {
     ).populate('user', 'name email');
 
     // Créer une notification si le statut a changé
+    console.log('🔔 Vérif notification - oldStatus:', oldStatus, '→ newStatus:', req.body.status);
+    console.log('🔔 remark.user:', remark.user ? remark.user._id : 'NULL');
     if (req.body.status && req.body.status !== oldStatus && remark.user) {
       try {
         const Notification = require('../models/Notification');
@@ -232,7 +234,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
           'Rejetée': 'rejetée'
         };
         const label = statusLabels[req.body.status] || req.body.status;
-        await Notification.create({
+        const notif = await Notification.create({
           userId: remark.user._id,
           type: 'status_change',
           title: `Mise à jour : ${remark.title}`,
@@ -240,10 +242,12 @@ router.put('/:id', optionalAuth, async (req, res) => {
           remarkId: remark._id,
           read: false
         });
-        console.log('🔔 Notification créée pour user:', remark.user._id);
+        console.log('🔔 ✅ Notification créée:', notif._id, 'pour user:', remark.user._id);
       } catch (notifError) {
-        console.error('❌ Erreur création notification:', notifError);
+        console.error('❌ Erreur création notification:', notifError.message);
       }
+    } else {
+      console.log('⚠️ Notification non créée - statusChange:', req.body.status !== oldStatus, '- userPresent:', !!remark.user);
     }
 
     console.log('✅ Remarque mise à jour:', remark._id);
