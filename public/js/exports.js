@@ -88,70 +88,86 @@ async function exportPDF(data, currentTab) {
         doc.addPage();
         let y = 20;
 
-        // Titre et Informations
-        doc.setFontSize(16).setFont('helvetica', 'bold').setTextColor(37, 99, 235).text(`${i + 1}. ${clean(r.title)}`, margin, y);
+        // Couleurs statut
+        const statusColors = {
+            'En attente': [245, 158, 11],
+            'En cours':   [37, 99, 235],
+            'Terminee':   [16, 185, 129],
+            'Rejetee':    [239, 68, 68]
+        };
+        const statusKey = (r.status || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        const statusRGB = statusColors[statusKey] || [100, 100, 100];
+
+        // Titre
+        doc.setFontSize(16).setFont('helvetica', 'bold').setTextColor(37, 99, 235);
+        doc.text(`${i + 1}. ${clean(r.title)}`, margin, y);
         y += 10;
 
+        // Statut en couleur + Catégorie
         doc.setFontSize(10).setTextColor(0);
         doc.setFont('helvetica', 'bold').text("Statut :", margin, y);
-        doc.setFont('helvetica', 'normal').text(clean(r.status), margin + 25, y);
-        doc.setFont('helvetica', 'bold').text("Categorie :", 110, y);
+        doc.setFont('helvetica', 'bold').setTextColor(...statusRGB).text(clean(r.status).toUpperCase(), margin + 22, y);
+        doc.setFont('helvetica', 'bold').setTextColor(0).text("Categorie :", 110, y);
         doc.setFont('helvetica', 'normal').text(clean(r.category), 135, y);
         y += 8;
 
-        doc.setFont('helvetica', 'bold').text("Declarant :", margin, y);
+        // Déclarant
+        doc.setFont('helvetica', 'bold').setTextColor(0).text("Declarant :", margin, y);
         doc.setFont('helvetica', 'normal').text(clean(r.user?.name || r.name || 'Anonyme'), margin + 25, y);
         y += 7;
 
+        // Contact
         doc.setFont('helvetica', 'bold').text("Contact :", margin, y);
         doc.setFont('helvetica', 'normal').text(`${r.user?.email || 'N/A'} | Tel : ${r.user?.phone || 'N/A'}`, margin + 25, y);
         y += 7;
 
-        doc.setFont('helvetica', 'bold').text("Assigne a :", margin, y);
-        doc.setFont('helvetica', 'normal').text(clean(r.assignedTo || 'Non assigne'), margin + 25, y);
-        y += 12;
-
-        // Description
+        // Description (sous Contact)
         doc.setFont('helvetica', 'bold').text("Description :", margin, y);
         y += 6;
         doc.setFont('helvetica', 'normal').setTextColor(60);
         const lines = doc.splitTextToSize(clean(r.description), pageWidth - (margin * 2));
         doc.text(lines, margin, y);
-        y += (lines.length * 5) + 10;
+        y += (lines.length * 5) + 7;
 
+        // Assigné à
+        doc.setTextColor(0).setFont('helvetica', 'bold').text("Assigne a :", margin, y);
+        doc.setFont('helvetica', 'normal').text(clean(r.assignedTo || 'Non assigne'), margin + 25, y);
+        y += 7;
+
+        // Notes admin
         if (r.adminNotes) {
-            doc.setTextColor(0).setFont('helvetica', 'bold').text("Notes de la mairie :", margin, y);
+            doc.setFont('helvetica', 'bold').text("Notes de la mairie :", margin, y);
             y += 6;
             doc.setFont('helvetica', 'normal').setTextColor(60);
             doc.text(doc.splitTextToSize(clean(r.adminNotes), pageWidth - (margin * 2)), margin, y);
-            y += 12;
-        }
-
-        if (r.location?.coordinates) {
-            const [lng, lat] = r.location.coordinates;
-            doc.setFontSize(9).setTextColor(37, 99, 235).text(`GPS : Lat ${lat.toFixed(6)} / Lng ${lng.toFixed(6)}`, margin, y);
             y += 10;
         }
 
-        // Photo en bas, après le texte
+        // GPS - coordonnées seules pour copier/coller
+        if (r.location?.coordinates) {
+            const [lng, lat] = r.location.coordinates;
+            doc.setFontSize(9).setTextColor(0).setFont('helvetica', 'normal');
+            doc.text(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, margin, y);
+            y += 10;
+        }
+
+        // Photo centrée horizontalement, après le texte
         let photoUrl = r.photoUrl || r.image;
         if (photoUrl && photoUrl.startsWith('http')) {
             try {
-                doc.setFontSize(10).setTextColor(0).setFont('helvetica', 'bold').text("Photo :", margin, y);
-                y += 6;
                 const img = await loadImage(photoUrl);
-                const imgW = 100;
+                const imgW = 120;
                 const ratio = img.width / img.height;
                 const imgH = imgW / ratio;
-                // Nouvelle page si pas assez de place
+                const imgX = (pageWidth - imgW) / 2;
                 if (y + imgH > doc.internal.pageSize.getHeight() - margin) {
                     doc.addPage();
                     y = margin;
                 }
-                doc.addImage(img, 'JPEG', margin, y, imgW, imgH);
+                doc.addImage(img, 'JPEG', imgX, y, imgW, imgH);
                 y += imgH + 10;
             } catch (e) {
-                // Photo inaccessible, on continue sans elle
+                // Photo inaccessible
             }
         }
     }
