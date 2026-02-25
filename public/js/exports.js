@@ -143,11 +143,16 @@ async function exportPDF(data, currentTab) {
             y += 10;
         }
 
-        // GPS - coordonnées seules pour copier/coller
+        // GPS - cliquable et en bleu
         if (r.location?.coordinates) {
             const [lng, lat] = r.location.coordinates;
-            doc.setFontSize(9).setTextColor(0).setFont('helvetica', 'normal');
-            doc.text(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, margin, y);
+            const coordText = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+            const mapsUrl = `https://www.google.com/maps?q=${lat.toFixed(6)},${lng.toFixed(6)}`;
+            doc.setFontSize(10).setTextColor(0).setFont('helvetica', 'bold');
+            doc.text("Localisation :", margin, y);
+            const labelWidth = doc.getTextWidth("Localisation : ");
+            doc.setFont('helvetica', 'normal').setTextColor(37, 99, 235);
+            doc.textWithLink(coordText, margin + labelWidth, y, { url: mapsUrl });
             y += 10;
         }
 
