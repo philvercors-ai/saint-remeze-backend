@@ -88,61 +88,71 @@ async function exportPDF(data, currentTab) {
         doc.addPage();
         let y = 20;
 
-        // Gestion de la Photo - uniquement les URLs Cloudinary valides
-        let photoUrl = r.photoUrl || r.image;
-        if (photoUrl && photoUrl.startsWith('http')) {
-            try {
-                const img = await loadImage(photoUrl);
-                const imgW = 90;
-                const ratio = img.width / img.height;
-                const imgH = imgW / ratio;
-                doc.addImage(img, 'JPEG', (pageWidth - imgW) / 2, y, imgW, imgH);
-                y += imgH + 15;
-            } catch (e) {
-                // Photo inaccessible, on continue sans elle
-                y += 5;
-            }
-        }
-
         // Titre et Informations
         doc.setFontSize(16).setFont('helvetica', 'bold').setTextColor(37, 99, 235).text(`${i + 1}. ${clean(r.title)}`, margin, y);
         y += 10;
-        
+
         doc.setFontSize(10).setTextColor(0);
         doc.setFont('helvetica', 'bold').text("Statut :", margin, y);
         doc.setFont('helvetica', 'normal').text(clean(r.status), margin + 25, y);
-        doc.setFont('helvetica', 'bold').text("Catégorie :", 110, y);
+        doc.setFont('helvetica', 'bold').text("Categorie :", 110, y);
         doc.setFont('helvetica', 'normal').text(clean(r.category), 135, y);
         y += 8;
 
-        doc.setFont('helvetica', 'bold').text("Déclarant :", margin, y);
+        doc.setFont('helvetica', 'bold').text("Declarant :", margin, y);
         doc.setFont('helvetica', 'normal').text(clean(r.user?.name || r.name || 'Anonyme'), margin + 25, y);
-        doc.setFont('helvetica', 'bold').text("Assigné à :", 110, y); // Ajout de l'info demandée
-        doc.setFont('helvetica', 'normal').text(clean(r.assignedTo || 'Non assigné'), 135, y);
-        y += 8;
+        y += 7;
 
         doc.setFont('helvetica', 'bold').text("Contact :", margin, y);
-        doc.setFont('helvetica', 'normal').text(`${r.user?.email || 'N/A'} | Tél : ${r.user?.phone || 'N/A'}`, margin + 25, y);
+        doc.setFont('helvetica', 'normal').text(`${r.user?.email || 'N/A'} | Tel : ${r.user?.phone || 'N/A'}`, margin + 25, y);
+        y += 7;
+
+        doc.setFont('helvetica', 'bold').text("Assigne a :", margin, y);
+        doc.setFont('helvetica', 'normal').text(clean(r.assignedTo || 'Non assigne'), margin + 25, y);
         y += 12;
 
         // Description
         doc.setFont('helvetica', 'bold').text("Description :", margin, y);
         y += 6;
-        doc.setFont('helvetica', 'normal');
+        doc.setFont('helvetica', 'normal').setTextColor(60);
         const lines = doc.splitTextToSize(clean(r.description), pageWidth - (margin * 2));
         doc.text(lines, margin, y);
-        y += (lines.length * 5) + 12;
+        y += (lines.length * 5) + 10;
 
         if (r.adminNotes) {
-            doc.setFont('helvetica', 'bold').text("Notes de la mairie :", margin, y);
+            doc.setTextColor(0).setFont('helvetica', 'bold').text("Notes de la mairie :", margin, y);
+            y += 6;
             doc.setFont('helvetica', 'normal').setTextColor(60);
-            doc.text(doc.splitTextToSize(clean(r.adminNotes), pageWidth - (margin * 2)), margin, y + 6);
-            y += 20;
+            doc.text(doc.splitTextToSize(clean(r.adminNotes), pageWidth - (margin * 2)), margin, y);
+            y += 12;
         }
 
         if (r.location?.coordinates) {
             const [lng, lat] = r.location.coordinates;
             doc.setFontSize(9).setTextColor(37, 99, 235).text(`GPS : Lat ${lat.toFixed(6)} / Lng ${lng.toFixed(6)}`, margin, y);
+            y += 10;
+        }
+
+        // Photo en bas, après le texte
+        let photoUrl = r.photoUrl || r.image;
+        if (photoUrl && photoUrl.startsWith('http')) {
+            try {
+                doc.setFontSize(10).setTextColor(0).setFont('helvetica', 'bold').text("Photo :", margin, y);
+                y += 6;
+                const img = await loadImage(photoUrl);
+                const imgW = 100;
+                const ratio = img.width / img.height;
+                const imgH = imgW / ratio;
+                // Nouvelle page si pas assez de place
+                if (y + imgH > doc.internal.pageSize.getHeight() - margin) {
+                    doc.addPage();
+                    y = margin;
+                }
+                doc.addImage(img, 'JPEG', margin, y, imgW, imgH);
+                y += imgH + 10;
+            } catch (e) {
+                // Photo inaccessible, on continue sans elle
+            }
         }
     }
     doc.save(`Rapport-Saint-Remeze-${currentTab}.pdf`);
