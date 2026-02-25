@@ -3,7 +3,6 @@
  * Saint-Remèze - Dashboard Admin
  */
 
-const API_URL = 'https://saint-remeze-backend.onrender.com';
 
 // --- UTILITAIRE : Chargement des images (Gestion CORS et Cloudinary) ---
 const loadImage = (url) => {
