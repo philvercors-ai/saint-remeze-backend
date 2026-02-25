@@ -88,20 +88,19 @@ async function exportPDF(data, currentTab) {
         doc.addPage();
         let y = 20;
 
-        // Gestion de la Photo (Centrée horizontalement)
+        // Gestion de la Photo - uniquement les URLs Cloudinary valides
         let photoUrl = r.photoUrl || r.image;
-        if (photoUrl) {
+        if (photoUrl && photoUrl.startsWith('http')) {
             try {
-                // Reconstitution de l'URL complète si nécessaire
-                const fullUrl = photoUrl.startsWith('http') ? photoUrl : `${API_URL}${photoUrl}`;
-                const img = await loadImage(fullUrl);
-                const imgW = 90; 
-                const ratio = img.width / img.height; 
+                const img = await loadImage(photoUrl);
+                const imgW = 90;
+                const ratio = img.width / img.height;
                 const imgH = imgW / ratio;
                 doc.addImage(img, 'JPEG', (pageWidth - imgW) / 2, y, imgW, imgH);
                 y += imgH + 15;
-            } catch (e) { 
-                y += 10; 
+            } catch (e) {
+                // Photo inaccessible, on continue sans elle
+                y += 5;
             }
         }
 
