@@ -1,30 +1,27 @@
 /**
- * exports.js - Version Enrichie avec Graphiques et Photos
+ * exports.js - Version avec Bargraph pour les catégories
  * Saint-Remèze - Dashboard Admin
  */
 
-// --- FONCTION UTILITAIRE : Chargement des images ---
+// --- UTILITAIRE : Chargement sécurisé des images ---
 const loadImage = (url) => {
     return new Promise((resolve, reject) => {
         const img = new Image();
         img.crossOrigin = 'Anonymous';
         img.onload = () => resolve(img);
-        img.onerror = (e) => reject(e);
+        img.onerror = (e) => reject(new Error("Erreur de chargement de l'image"));
         img.src = url;
     });
 };
 
-// --- FONCTION UTILITAIRE : Dessin d'un camembert ---
+// --- UTILITAIRE : Dessin de graphique camembert (pour les Statuts) ---
 function drawPieChart(doc, x, y, radius, dataObj, title) {
     const entries = Object.entries(dataObj);
     const total = entries.reduce((sum, [_, val]) => sum + val, 0);
+    if (total === 0) return;
+
     let startAngle = 0;
-    
-    // Palette de couleurs élégante
-    const colors = [
-        [37, 99, 235], [16, 185, 129], [245, 158, 11], 
-        [239, 68, 68], [139, 92, 246], [71, 85, 105]
-    ];
+    const colors = [[37, 99, 235], [16, 185, 129], [245, 158, 11], [239, 68, 68], [139, 92, 246]];
 
     doc.setFontSize(12).setFont('helvetica', 'bold').setTextColor(40);
     doc.text(title, x, y - radius - 10, { align: 'center' });
@@ -32,76 +29,88 @@ function drawPieChart(doc, x, y, radius, dataObj, title) {
     entries.forEach(([label, value], i) => {
         const sliceAngle = (value / total) * (Math.PI * 2);
         const color = colors[i % colors.length];
-        
         doc.setFillColor(color[0], color[1], color[2]);
         
-        // Dessin du segment (Approximation par triangles pour compatibilité maximale)
         const segments = 30;
         for (let s = 0; s < segments; s++) {
             const step = sliceAngle / segments;
             const a1 = startAngle + s * step;
             const a2 = startAngle + (s + 1) * step;
-            
-            doc.triangle(
-                x, y,
-                x + Math.cos(a1) * radius, y + Math.sin(a1) * radius,
-                x + Math.cos(a2) * radius, y + Math.sin(a2) * radius,
-                'F'
-            );
+            doc.triangle(x, y, x + Math.cos(a1) * radius, y + Math.sin(a1) * radius, x + Math.cos(a2) * radius, y + Math.sin(a2) * radius, 'F');
         }
 
-        // Légende à côté
         const ly = y - radius + (i * 7);
         doc.rect(x + radius + 10, ly, 4, 4, 'F');
         doc.setFontSize(8).setFont('helvetica', 'normal').setTextColor(60);
         doc.text(`${label}: ${value}`, x + radius + 17, ly + 3.5);
-
         startAngle += sliceAngle;
     });
 }
 
-// --- EXPORT CSV (Conservé) ---
+// --- UTILITAIRE : Dessin de Bargraph (pour les Catégories) ---
+function drawBarChart(doc, x, y, width, dataObj, title) {
+    const entries = Object.entries(dataObj).sort((a, b) => b[1] - a[1]); // Trier par valeur décroissante
+    const maxVal = Math.max(...Object.values(dataObj));
+    const barHeight = 6;
+    const gap = 4;
+
+    doc.setFontSize(12).setFont('helvetica', 'bold').setTextColor(40);
+    doc.text(title, x, y - 5);
+
+    entries.forEach(([label, value], i) => {
+        const currentY = y + (i * (barHeight + gap));
+        const barWidth = (value / maxVal) * (width - 40); // 40px réservés pour le texte du chiffre
+
+        // Couleur de la barre (Bleu Saint-Remèze)
+        doc.setFillColor(37, 99, 235);
+        doc.rect(x, currentY, barWidth, barHeight, 'F');
+
+        // Texte de la catégorie
+        doc.setFontSize(8).setFont('helvetica', 'normal').setTextColor(60);
+        doc.text(`${label}`, x, currentY - 1);
+        
+        // Valeur au bout de la barre
+        doc.setFontSize(8).setFont('helvetica', 'bold').setTextColor(40);
+        doc.text(value.toString(), x + barWidth + 2, currentY + 4.5);
+    });
+    
+    return entries.length * (barHeight + gap) + 10; // Retourne la hauteur totale utilisée
+}
+
+// --- EXPORT CSV ---
 function exportCSV(data, currentTab) {
     if (!data || data.length === 0) return alert('Aucune donnée');
-    let csv = "\ufeffDate,Citoyen,Email,Telephone,Categorie,Titre,Statut,Description\n";
+    let csv = "\ufeffDate,Citoyen,Email,Telephone,Categorie,Titre,Statut,Description,Notes_admin\n";
     data.forEach(r => {
-        csv += `"${new Date(r.createdAt).toLocaleDateString()}","${r.user?.name || 'Anonyme'}","${r.user?.email || 'N/A'}","${r.user?.phone || 'N/A'}","${r.category}","${r.title}","${r.status}","${(r.description || '').replace(/\n/g, ' ')}"\n`;
+        const date = new Date(r.createdAt).toLocaleDateString('fr-FR');
+        const desc = (r.description || '').replace(/(\r\n|\n|\r)/gm, ' ').replace(/"/g, '""');
+        csv += `"${date}","${r.user?.name || r.name || 'Anonyme'}","${r.user?.email || 'N/A'}","${r.user?.phone || 'N/A'}","${r.category}","${r.title}","${r.status}","${desc}","${r.adminNotes || ''}"\n`;
     });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' }));
-    link.download = `export-${currentTab}.csv`;
+    link.download = `export-saint-remeze-${currentTab}.csv`;
     link.click();
 }
 
-// --- EXPORT PDF ENRICHI ---
+// --- EXPORT PDF ---
 async function exportPDF(data, currentTab) {
-    if (!data || data.length === 0) return alert('Aucune donnée');
+    if (!data || data.length === 0) return alert('Aucune donnée à exporter');
 
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
     const margin = 20;
 
-    const clean = (s) => String(s || 'N/A').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, '');
+    const clean = (str) => String(str || 'N/A').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, '');
 
-    // --- PAGE 1 : COUVERTURE ET GRAPHES ---
-    // Bandeau bleu
-    doc.setFillColor(37, 99, 235);
-    doc.rect(0, 0, pageWidth, 40, 'F');
-    
-    doc.setFontSize(24).setFont('helvetica', 'bold').setTextColor(255);
-    doc.text("SAINT-REMÈZE", margin, 25);
-    doc.setFontSize(10).setFont('helvetica', 'normal').text("RAPPORT OFFICIEL DES SIGNALEMENTS", margin, 32);
+    // --- PAGE 1 : STATISTIQUES ---
+    doc.setFontSize(22).setFont('helvetica', 'bold').setTextColor(37, 99, 235);
+    doc.text("Saint-Remèze", margin, 20);
+    doc.setDrawColor(37, 99, 235).setLineWidth(0.5).line(margin, 25, pageWidth - margin, 25);
 
-    const reportTitle = currentTab === 'archived' ? "ARCHIVES COMMUNALES" : "SIGNALEMENTS ACTIFS";
-    doc.setFontSize(18).setTextColor(40).setFont('helvetica', 'bold');
-    doc.text(reportTitle, pageWidth / 2, 60, { align: 'center' });
-    
-    doc.setFontSize(10).setFont('helvetica', 'italic').setTextColor(100);
-    doc.text(`Document généré le ${new Date().toLocaleString('fr-FR')}`, pageWidth / 2, 67, { align: 'center' });
+    const reportTitle = currentTab === 'archived' ? "Rapport des Remarques Archivées" : "Rapport des Remarques Actives";
+    doc.setFontSize(18).setTextColor(0).text(reportTitle, pageWidth / 2, 45, { align: 'center' });
 
-    // Statistiques
     const statsStatus = {};
     const statsCat = {};
     data.forEach(r => {
@@ -109,97 +118,76 @@ async function exportPDF(data, currentTab) {
         statsCat[r.category] = (statsCat[r.category] || 0) + 1;
     });
 
-    // Dessin des camemberts
-    drawPieChart(doc, 60, 120, 30, statsStatus, "Répartition par Statut");
-    drawPieChart(doc, 60, 200, 30, statsCat, "Répartition par Catégorie");
+    // 1. Camembert pour les statuts (peu d'options)
+    drawPieChart(doc, 60, 100, 25, statsStatus, "Répartition par Statut");
 
-    // --- PAGES DÉTAILS ---
+    // 2. Bargraph pour les catégories (beaucoup d'options)
+    drawBarChart(doc, margin, 150, pageWidth - (margin * 2), statsCat, "Répartition par Catégories");
+
+    // --- PAGES DE DÉTAILS ---
     for (let i = 0; i < data.length; i++) {
         const r = data[i];
         doc.addPage();
         let y = 20;
 
-        // Header de page
-        doc.setFillColor(245, 247, 250);
-        doc.rect(0, 0, pageWidth, 15, 'F');
-        doc.setFontSize(8).setFont('helvetica', 'italic').setTextColor(100);
-        doc.text(`Fiche de signalement n°${i+1} - Mairie de Saint-Remèze`, margin, 10);
-
-        // Photo (Gestion améliorée)
+        // Photo centrée horizontalement
         const photoUrl = r.imageUrl || r.image;
         if (photoUrl) {
             try {
                 const img = await loadImage(photoUrl);
-                // Calcul du ratio pour ne pas déformer
+                const imgWidth = 100; // Taille un peu plus grande pour le détail
                 const ratio = img.width / img.height;
-                const imgW = 100;
-                const imgH = imgW / ratio;
-                doc.addImage(img, 'JPEG', (pageWidth - imgW) / 2, y, imgW, imgH);
-                y += imgH + 10;
+                const imgHeight = imgWidth / ratio;
+                const xCentered = (pageWidth - imgWidth) / 2;
+                doc.addImage(img, 'JPEG', xCentered, y, imgWidth, imgHeight);
+                y += imgHeight + 15;
             } catch (e) {
-                doc.setFontSize(9).setTextColor(200).text("[Image non disponible]", margin, y + 10);
-                y += 20;
+                y += 10;
             }
         }
 
-        // Titre
-        doc.setFontSize(16).setFont('helvetica', 'bold').setTextColor(37, 99, 235);
+        doc.setFontSize(16).setFont('helvetica', 'bold').setTextColor(0);
         doc.text(`${i + 1}. ${clean(r.title)}`, margin, y);
         y += 10;
 
-        // Bloc Infos Gris
-        doc.setFillColor(248, 250, 252);
-        doc.rect(margin, y, pageWidth - (margin * 2), 35, 'F');
-        
-        doc.setFontSize(10).setTextColor(0);
-        let infoY = y + 8;
-        doc.setFont('helvetica', 'bold').text("Statut :", margin + 5, infoY);
-        doc.setFont('helvetica', 'normal').text(clean(r.status), margin + 30, infoY);
-        
-        doc.setFont('helvetica', 'bold').text("Catégorie :", 110, infoY);
-        doc.setFont('helvetica', 'normal').text(clean(r.category), 135, infoY);
-        
-        infoY += 8;
-        doc.setFont('helvetica', 'bold').text("Déclarant :", margin + 5, infoY);
-        doc.setFont('helvetica', 'normal').text(clean(r.user?.name || r.name || 'Anonyme'), margin + 30, infoY);
-        
-        infoY += 8;
-        doc.setFont('helvetica', 'bold').text("Contact :", margin + 5, infoY);
-        doc.setFont('helvetica', 'normal').text(`${r.user?.email || 'N/A'} | Tél: ${r.user?.phone || 'N/A'}`, margin + 30, infoY);
+        // Infos principales
+        doc.setFontSize(10).setFont('helvetica', 'bold').text("STATUT :", margin, y);
+        doc.setFont('helvetica', 'normal').text(clean(r.status).toUpperCase(), margin + 25, y);
+        doc.setFont('helvetica', 'bold').text("CATÉGORIE :", 110, y);
+        doc.setFont('helvetica', 'normal').text(clean(r.category), 140, y);
+        y += 10;
 
-        infoY += 8;
+        const userName = r.user?.name || r.name || 'Anonyme';
+        doc.setFont('helvetica', 'bold').text("Déclarant :", margin, y);
+        doc.setFont('helvetica', 'normal').text(clean(userName), margin + 25, y);
+        y += 7;
+        doc.text(`Email : ${r.user?.email || 'N/A'} | Tél : ${r.user?.phone || 'N/A'}`, margin, y);
+        y += 10;
+
+        doc.setFont('helvetica', 'bold').text("Description :", margin, y);
+        y += 6;
+        doc.setFont('helvetica', 'normal');
+        const splitDesc = doc.splitTextToSize(clean(r.description), pageWidth - (margin * 2));
+        doc.text(splitDesc, margin, y);
+        y += (splitDesc.length * 5) + 12;
+
+        if (r.adminNotes) {
+            doc.setDrawColor(200).line(margin, y, margin + 40, y); y += 7;
+            doc.setFont('helvetica', 'bold').text("Notes Admin :", margin, y);
+            doc.setFont('helvetica', 'normal');
+            const splitNotes = doc.splitTextToSize(clean(r.adminNotes), pageWidth - (margin * 2));
+            doc.text(splitNotes, margin, y + 6);
+            y += (splitNotes.length * 5) + 15;
+        }
+
         if (r.location?.coordinates) {
             const [lng, lat] = r.location.coordinates;
-            doc.setFont('helvetica', 'bold').text("GPS :", margin + 5, infoY);
-            doc.setFont('helvetica', 'normal').setTextColor(37, 99, 235).text(`${lat.toFixed(6)}, ${lng.toFixed(6)}`, margin + 30, infoY);
+            doc.setFontSize(9).setTextColor(37, 99, 235);
+            doc.text(`Localisation GPS : Latitude ${lat.toFixed(6)} / Longitude ${lng.toFixed(6)}`, margin, y);
         }
-        
-        y += 45;
-
-        // Description
-        doc.setTextColor(0).setFontSize(11).setFont('helvetica', 'bold').text("Description du problème :", margin, y);
-        y += 7;
-        doc.setFont('helvetica', 'normal').setFontSize(10);
-        const lines = doc.splitTextToSize(clean(r.description), pageWidth - (margin * 2));
-        doc.text(lines, margin, y);
-        y += (lines.length * 5) + 12;
-
-        // Notes Admin (si présentes)
-        if (r.adminNotes) {
-            doc.setDrawColor(37, 99, 235).setLineWidth(0.5).line(margin, y, margin + 20, y);
-            y += 7;
-            doc.setFont('helvetica', 'bold').text("Commentaires de la mairie :", margin, y);
-            y += 6;
-            doc.setFont('helvetica', 'normal').setTextColor(60);
-            const noteLines = doc.splitTextToSize(clean(r.adminNotes), pageWidth - (margin * 2));
-            doc.text(noteLines, margin, y);
-        }
-
-        // Pied de page
-        doc.setFontSize(8).setTextColor(150).text(`Page ${i + 2} / ${data.length + 1}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
     }
 
-    doc.save(`Rapport_Saint_Remeze_${currentTab}.pdf`);
+    doc.save(`Rapport-Saint-Remeze-${currentTab}.pdf`);
 }
 
 window.exportCSV = exportCSV;
