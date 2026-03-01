@@ -36,6 +36,14 @@ const userSchema = new mongoose.Schema({
   rgpdConsentDate: {
     type: Date,
     default: null
+  },
+  resetPasswordToken: {
+    type: String,
+    default: null
+  },
+  resetPasswordExpires: {
+    type: Date,
+    default: null
   }
 }, {
   timestamps: true
