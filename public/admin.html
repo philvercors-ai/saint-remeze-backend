@@ -96,6 +96,7 @@
             <div class="stats-grid">
                 <div class="stat-card"><h3 id="statTotal">0</h3><p>Total</p></div>
                 <div class="stat-card"><h3 id="statAttente" style="color: var(--warning);">0</h3><p>En attente</p></div>
+                <div class="stat-card"><h3 id="statVue" style="color: #7c3aed;">0</h3><p>Vues</p></div>
                 <div class="stat-card"><h3 id="statCours" style="color: var(--primary);">0</h3><p>En cours</p></div>
                 <div class="stat-card"><h3 id="statFini" style="color: var(--success);">0</h3><p>Terminées</p></div>
             </div>
@@ -121,6 +122,7 @@
                 <select id="statusFilter" onchange="filterTable()" style="padding: 0.6rem; border-radius: 4px; border: 1px solid #cbd5e1;">
                     <option value="">Tous les statuts</option>
                     <option value="En attente">En attente</option>
+                    <option value="Vue">Vue</option>
                     <option value="En cours">En cours</option>
                     <option value="Terminée">Terminée</option>
                     <option value="Rejetée">Rejetée</option>
@@ -178,6 +180,7 @@
                         <label>Statut</label>
                         <select id="editStatus">
                             <option value="En attente">En attente</option>
+                            <option value="Vue">Vue</option>
                             <option value="En cours">En cours</option>
                             <option value="Terminée">Terminée</option>
                             <option value="Rejetée">Rejetée</option>
@@ -203,7 +206,7 @@
     </div>
 
     <script>
-        var API_URL = 'https://saint-remeze-backend.onrender.com';
+        var API_URL = window.location.origin;
         window.allData = [];
         let allData = window.allData;
         window.archivedData = [];
@@ -272,6 +275,7 @@
         function updateUI() {
             document.getElementById('statTotal').innerText = allData.length;
             document.getElementById('statAttente').innerText = allData.filter(d => d.status === 'En attente').length;
+            document.getElementById('statVue').innerText = allData.filter(d => d.status === 'Vue').length;
             document.getElementById('statCours').innerText = allData.filter(d => d.status === 'En cours').length;
             document.getElementById('statFini').innerText = allData.filter(d => d.status === 'Terminée').length;
             
@@ -329,7 +333,7 @@
                         <td>${createdDate}</td>
                         <td>${userName}</td>
                         <td>${r.title}</td>
-                        <td><span style="font-weight:bold; color:${r.status === 'Terminée' ? 'green' : (r.status === 'Rejetée' ? 'red' : 'orange')}">${r.status}</span></td>
+                        <td><span style="font-weight:bold; color:${r.status === 'Terminée' ? 'green' : (r.status === 'Rejetée' ? 'red' : (r.status === 'Vue' ? '#7c3aed' : (r.status === 'En cours' ? '#2563eb' : 'orange')))}">${r.status}</span></td>
                         ${archiveCell}
                         <td>${buttons}</td>
                     </tr>
@@ -357,7 +361,7 @@
             updateUI();
         }
 
-        function openEdit(id) {
+        async function openEdit(id) {
             const r = (currentTab === 'active' ? allData : archivedData).find(x => x._id === id);
             if (!r) return;
             
@@ -417,6 +421,24 @@
             document.getElementById('editNotes').value = r.adminNotes || '';
             
             document.getElementById('editModal').classList.add('active');
+
+            // Auto-passage à "Vue" si la remarque est encore "En attente"
+            if (r.status === 'En attente') {
+                const token = localStorage.getItem('adminToken');
+                try {
+                    const viewRes = await fetch(`${API_URL}/api/remarks/${id}/view`, {
+                        method: 'PATCH',
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    const viewData = await viewRes.json();
+                    if (viewData.changed) {
+                        const idx = allData.findIndex(x => x._id === id);
+                        if (idx !== -1) { allData[idx].status = 'Vue'; window.allData = allData; }
+                        document.getElementById('editStatus').value = 'Vue';
+                        updateUI();
+                    }
+                } catch(e) { /* silently fail */ }
+            }
         }
 
         function closeModal() { 

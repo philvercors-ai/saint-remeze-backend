@@ -30,7 +30,7 @@ const remarkSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['En attente', 'En cours', 'Terminée', 'Rejetée'],
+    enum: ['En attente', 'Vue', 'En cours', 'Terminée', 'Rejetée'],
     default: 'En attente'
   },
   user: {

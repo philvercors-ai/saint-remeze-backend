@@ -237,6 +237,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
         const Notification = require('../models/Notification');
         const statusLabels = {
           'En attente': 'en attente',
+          'Vue': 'prise en compte par l\'administration',
           'En cours': 'en cours de traitement',
           'Terminée': 'terminée',
           'Rejetée': 'rejetée'
@@ -262,6 +263,43 @@ router.put('/:id', optionalAuth, async (req, res) => {
     res.json({ success: true, remark });
   } catch (error) {
     console.error('❌ Erreur PUT remark:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// PATCH /:id/view - Marquer comme Vue quand l'admin ouvre la remarque
+router.patch('/:id/view', optionalAuth, async (req, res) => {
+  try {
+    const remark = await Remark.findById(req.params.id).populate('user', 'name email');
+    if (!remark) return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
+
+    if (remark.status !== 'En attente') {
+      return res.json({ success: true, remark, changed: false });
+    }
+
+    remark.status = 'Vue';
+    await remark.save();
+
+    if (remark.user) {
+      try {
+        const Notification = require('../models/Notification');
+        await Notification.create({
+          userId: remark.user._id,
+          type: 'status_change',
+          title: `Signalement pris en compte`,
+          message: `Votre signalement "${remark.title}" a été vu et pris en compte par l'administration.`,
+          remarkId: remark._id,
+          read: false
+        });
+      } catch (notifError) {
+        console.error('❌ Erreur notification vue:', notifError.message);
+      }
+    }
+
+    console.log('👁️  Remarque marquée Vue:', remark._id);
+    res.json({ success: true, remark, changed: true });
+  } catch (error) {
+    console.error('❌ Erreur PATCH view:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 });
