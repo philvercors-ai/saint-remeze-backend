@@ -111,7 +111,7 @@ router.get('/archived', optionalAuth, async (req, res) => {
     console.log('📋 GET /api/archive/archived');
     
     const remarks = await Remark.find({ archived: true })
-      .populate('user', 'name email')
+      .populate('user', 'name email phone')
       .sort({ archivedAt: -1 });
     
     console.log('✅ Remarques archivées:', remarks.length);

@@ -26,7 +26,7 @@ router.get('/admin/all', optionalAuth, async (req, res) => {
   try {
     console.log('👑 GET /api/remarks/admin/all');
     const remarks = await Remark.find({ archived: false })
-      .populate('user', 'name email')
+      .populate('user', 'name email phone')
       .sort({ createdAt: -1 });
     
     const remarksWithInfo = remarks.map(r => ({
@@ -106,7 +106,7 @@ router.get('/', optionalAuth, async (req, res) => {
     }
 
     const remarks = await Remark.find(query)
-      .populate('user', 'name email')
+      .populate('user', 'name email phone')
       .sort({ createdAt: -1 });
     
     res.json(remarks);
@@ -126,7 +126,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
     }
     
     const remark = await Remark.findById(req.params.id)
-      .populate('user', 'name email');
+      .populate('user', 'name email phone');
     
     if (!remark) {
       return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
@@ -191,7 +191,7 @@ router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
     await remark.save();
     
     // ✅ Populate user pour le retour
-    await remark.populate('user', 'name email');
+    await remark.populate('user', 'name email phone');
 
     console.log('✅ Remarque créée:', remark._id);
     console.log('   User associé:', remark.user ? remark.user.name : 'Aucun');
@@ -227,7 +227,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
       req.params.id,
       req.body,
       { new: true, runValidators: true }
-    ).populate('user', 'name email');
+    ).populate('user', 'name email phone');
 
     // Créer une notification si le statut a changé
     console.log('🔔 Vérif notification - oldStatus:', oldStatus, '→ newStatus:', req.body.status);
@@ -270,7 +270,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
 // PATCH /:id/view - Marquer comme Vue quand l'admin ouvre la remarque
 router.patch('/:id/view', optionalAuth, async (req, res) => {
   try {
-    const remark = await Remark.findById(req.params.id).populate('user', 'name email');
+    const remark = await Remark.findById(req.params.id).populate('user', 'name email phone');
     if (!remark) return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
 
     if (remark.status !== 'En attente') {
