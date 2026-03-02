@@ -207,7 +207,7 @@ router.post('/forgot-password', async (req, res) => {
 
     console.log('🔑 Token reset généré pour:', user.email);
 
-    const frontendUrl = process.env.FRONTEND_URL || 'https://saint-remeze-pwa.vercel.app';
+    const frontendUrl = process.env.FRONTEND_URL || 'https://saint-remeze-frontend.vercel.app';
     const resetUrl = `${frontendUrl}/reset-password/${resetToken}`;
 
     // Envoi de l'email via Resend
