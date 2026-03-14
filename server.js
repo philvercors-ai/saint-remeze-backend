@@ -15,20 +15,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static('public'));
 
-// Route racine
+// Route racine → Portail citoyen
 app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    name: 'API Saint-Remèze',
-    version: '7.2.3',
-    status: 'running',
-    endpoints: {
-      remarks: '/api/remarks',
-      auth: '/api/auth',
-      admin: '/admin.html',
-      dashboard: '/admin'
-    }
-  });
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // Route admin - Redirection vers admin.html
