@@ -1,24 +1,215 @@
 <!DOCTYPE html>
-<html>
+<html lang="fr">
 <head>
-    <meta charset="UTF-8">
-    <title>Saint-Remèze API</title>
-    <style>
-        body { font-family: system-ui; background: linear-gradient(135deg, #667eea, #764ba2); min-height: 100vh; display: flex; align-items: center; justify-content: center; margin: 0; padding: 20px; }
-        .container { background: white; padding: 60px; border-radius: 16px; text-align: center; max-width: 600px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
-        h1 { color: #1e293b; }
-        .status { background: #d1fae5; color: #065f46; padding: 12px 24px; border-radius: 8px; margin: 20px 0; font-weight: bold; display: inline-block; }
-        a { display: block; background: #2563eb; color: white; padding: 16px; margin: 12px 0; border-radius: 8px; text-decoration: none; font-weight: 600; }
-        a:hover { background: #1d4ed8; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Saint-Remèze — Espace Citoyen</title>
+  <link rel="icon" href="/logo-saint-remeze.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:  #1a3a5a;
+      --gold:  #c9a84c;
+      --bg:    #f7f4ef;
+      --white: #ffffff;
+      --border:#d4cfc7;
+      --text:  #374151;
+      --muted: #6b7280;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Source Sans 3', Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--navy);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.2);
+    }
+
+    header img {
+      height: 40px;
+      width: 40px;
+      border-radius: 6px;
+    }
+
+    .header-text h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: #fff;
+      font-weight: 700;
+    }
+
+    .header-text span {
+      font-size: 11px;
+      color: var(--gold);
+      font-weight: 500;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    /* ── HERO ── */
+    .hero {
+      text-align: center;
+      padding: 60px 20px 40px;
+    }
+
+    .hero h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 30px;
+      color: var(--navy);
+      margin-bottom: 12px;
+    }
+
+    .hero p {
+      color: var(--muted);
+      font-size: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+      line-height: 1.6;
+    }
+
+    /* ── CARDS ── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 24px;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: 0 20px 60px;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: 16px;
+      padding: 36px 28px;
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 16px rgba(26,58,90,.10);
+      text-align: center;
+      text-decoration: none;
+      color: inherit;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .card:hover {
+      transform: translateY(-4px);
+      box-shadow: 0 8px 32px rgba(26,58,90,.15);
+    }
+
+    .card-icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+    }
+
+    .card-icon.blue { background: #e8eef5; }
+    .card-icon.gold { background: #fdf3dc; }
+
+    .card h3 {
+      font-family: 'Playfair Display', serif;
+      font-size: 20px;
+      color: var(--navy);
+    }
+
+    .card p {
+      font-size: 14px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .card-btn {
+      margin-top: 8px;
+      display: inline-block;
+      padding: 10px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: background 0.15s;
+    }
+
+    .card-btn.navy { background: var(--navy); color: #fff; }
+    .card-btn.navy:hover { background: #0f2a44; }
+    .card-btn.gold { background: var(--gold); color: #fff; }
+    .card-btn.gold:hover { background: #b8923e; }
+
+    /* ── FOOTER ── */
+    footer {
+      margin-top: auto;
+      text-align: center;
+      padding: 20px;
+      font-size: 12px;
+      color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+
+    footer a { color: var(--gold); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 480px) {
+      .hero h2 { font-size: 24px; }
+      .cards { grid-template-columns: 1fr; }
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>🏛️ Saint-Remèze API v7.2</h1>
-        <div class="status">✅ Serveur opérationnel</div>
-        <a href="https://saint-remeze-backend.onrender.com/admin">👨‍💼 Dashboard Admin</a>
-        <a href="https://saint-remeze-frontend.vercel.app">🏠 App Citoyens</a>
-        <a href="https://saint-remeze-backend.onrender.com/api">📡 API</a>
+
+  <header>
+    <img src="/logo-saint-remeze.png" alt="Logo Saint-Remèze" onerror="this.style.display='none'" />
+    <div class="header-text">
+      <h1>Saint-Remèze</h1>
+      <span>Espace Citoyen</span>
     </div>
+  </header>
+
+  <section class="hero">
+    <h2>Bienvenue, citoyen&nbsp;👋</h2>
+    <p>Accédez aux services numériques de la commune de Saint-Remèze.</p>
+  </section>
+
+  <div class="cards">
+
+    <a class="card" href="https://saint-remeze-frontend.vercel.app" target="_blank" rel="noopener">
+      <div class="card-icon blue">📋</div>
+      <h3>Signalements</h3>
+      <p>Signalez un problème sur la voirie, les espaces verts ou les équipements publics.</p>
+      <span class="card-btn navy">Accéder →</span>
+    </a>
+
+    <a class="card" href="https://saint-remeze-salles.example.com" target="_blank" rel="noopener">
+      <div class="card-icon gold">🏠</div>
+      <h3>Réservation de salles</h3>
+      <p>Consultez la disponibilité et réservez les salles communales en ligne.</p>
+      <span class="card-btn gold">Accéder →</span>
+    </a>
+
+  </div>
+
+  <footer>
+    &copy; 2026 Commune de Saint-Remèze &mdash;
+    <a href="/admin">Espace Admin</a>
+  </footer>
+
 </body>
 </html>
