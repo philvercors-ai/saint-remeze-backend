@@ -83,9 +83,22 @@ router.delete('/admin/:id', optionalAuth, async (req, res) => {
       }
     }
 
+    // Supprimer toutes les photos du tableau photos[]
+    if (remark.photos && remark.photos.length > 0) {
+      for (const photo of remark.photos) {
+        if (photo.publicId) {
+          try {
+            await cloudinary.uploader.destroy(photo.publicId);
+          } catch (err) {
+            console.error('Erreur suppression Cloudinary photo:', err);
+          }
+        }
+      }
+    }
+
     await remark.deleteOne();
     console.log('✅ Remarque supprimée:', req.params.id);
-    
+
     res.json({ success: true, message: 'Remarque supprimée' });
   } catch (error) {
     console.error('❌ Erreur DELETE admin:', error);
@@ -140,7 +153,7 @@ router.get('/:id', optionalAuth, async (req, res) => {
 });
 
 // ✅ POST / (CORRECTION : optionalAuth AVANT upload.single)
-router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
+router.post('/', optionalAuth, upload.array('photos', 3), async (req, res) => {
   try {
     console.log('📥 POST /api/remarks');
     console.log('   User authentifié:', req.user ? req.user.userId : 'Aucun (anonyme)');
@@ -171,12 +184,13 @@ router.post('/', optionalAuth, upload.single('photo'), async (req, res) => {
       console.log('⚠️  Pas de user authentifié, remarque anonyme');
     }
 
-    // Photo uploadée sur Cloudinary
-    if (req.file) {
-      remarkData.photoUrl = req.file.path;
-      remarkData.cloudinaryPublicId = req.file.filename;
-      console.log('📸 Photo Cloudinary URL:', req.file.path);
-      console.log('📸 Public ID:', req.file.filename);
+    // Photos uploadées sur Cloudinary (jusqu'à 3)
+    if (req.files && req.files.length > 0) {
+      remarkData.photos = req.files.map(f => ({ url: f.path, publicId: f.filename }));
+      // Compat backward : première photo dans photoUrl
+      remarkData.photoUrl = req.files[0].path;
+      remarkData.cloudinaryPublicId = req.files[0].filename;
+      console.log('📸 Photos Cloudinary:', req.files.length, 'fichier(s)');
     }
 
     if (latitude && longitude) {
@@ -320,6 +334,19 @@ router.delete('/:id', optionalAuth, async (req, res) => {
         console.log('📸 Photo Cloudinary supprimée');
       } catch (err) {
         console.error('Erreur suppression Cloudinary:', err);
+      }
+    }
+
+    // Supprimer toutes les photos du tableau photos[]
+    if (remark.photos && remark.photos.length > 0) {
+      for (const photo of remark.photos) {
+        if (photo.publicId) {
+          try {
+            await cloudinary.uploader.destroy(photo.publicId);
+          } catch (err) {
+            console.error('Erreur suppression Cloudinary photo:', err);
+          }
+        }
       }
     }
 

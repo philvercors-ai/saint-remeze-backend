@@ -156,24 +156,28 @@ async function exportPDF(data, currentTab) {
             y += 10;
         }
 
-        // Photo centrée horizontalement, après le texte
-        let photoUrl = r.photoUrl || r.image;
-        if (photoUrl && photoUrl.startsWith('http')) {
-            try {
-                const img = await loadImage(photoUrl);
-                const imgW = 120;
-                const ratio = img.width / img.height;
-                const imgH = imgW / ratio;
-                const imgX = (pageWidth - imgW) / 2;
-                if (y + imgH > doc.internal.pageSize.getHeight() - margin) {
-                    doc.addPage();
-                    y = margin;
-                }
-                doc.addImage(img, 'JPEG', imgX, y, imgW, imgH);
-                y += imgH + 10;
-            } catch (e) {
-                // Photo inaccessible
+        // Photos (jusqu'à 3)
+        const photoUrls = r.photos?.length > 0
+          ? r.photos.map(p => p.url)
+          : (r.photoUrl ? [r.photoUrl] : []);
+
+        for (const photoUrl of photoUrls) {
+          if (!photoUrl || !photoUrl.startsWith('http')) continue;
+          try {
+            const img = await loadImage(photoUrl);
+            const imgW = 120;
+            const ratio = img.width / img.height;
+            const imgH = imgW / ratio;
+            const imgX = (pageWidth - imgW) / 2;
+            if (y + imgH > doc.internal.pageSize.getHeight() - margin) {
+              doc.addPage();
+              y = margin;
             }
+            doc.addImage(img, 'JPEG', imgX, y, imgW, imgH);
+            y += imgH + 10;
+          } catch (e) {
+            // Photo inaccessible
+          }
         }
     }
     doc.save(`Rapport-Saint-Remeze-${currentTab}.pdf`);

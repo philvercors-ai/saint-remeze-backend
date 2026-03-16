@@ -19,6 +19,10 @@ const remarkSchema = new mongoose.Schema({
   cloudinaryPublicId: {
     type: String
   },
+  photos: [{
+    url: { type: String },
+    publicId: { type: String }
+  }],
   location: {
     type: {
       type: String,
