@@ -46,12 +46,26 @@ function drawBarChart(doc, x, y, width, dataObj, title) {
     const entries = Object.entries(dataObj).sort((a, b) => b[1] - a[1]);
     const maxVal = Math.max(...Object.values(dataObj));
     const barH = 6; const gap = 4;
+    const catColors = [
+        [37,  99,  235], // bleu
+        [16,  185, 129], // vert
+        [245, 158, 11],  // orange
+        [239, 68,  68],  // rouge
+        [139, 92,  246], // violet
+        [20,  184, 166], // teal
+        [249, 115, 22],  // orange foncé
+        [236, 72,  153], // rose
+        [132, 204, 22],  // vert lime
+        [59,  130, 246], // bleu clair
+        [168, 85,  247], // mauve
+    ];
     doc.setFontSize(12).setFont('helvetica', 'bold').setTextColor(40);
     doc.text(title, x, y - 5);
     entries.forEach(([label, value], i) => {
         const curY = y + (i * (barH + gap));
         const barW = (value / maxVal) * (width - 50);
-        doc.setFillColor(37, 99, 235);
+        const color = catColors[i % catColors.length];
+        doc.setFillColor(...color);
         doc.rect(x, curY, barW, barH, 'F');
         doc.setFontSize(8).setFont('helvetica', 'normal').setTextColor(60).text(label, x, curY - 1);
         doc.setFontSize(8).setFont('helvetica', 'bold').setTextColor(40).text(value.toString(), x + barW + 2, curY + 4.5);
