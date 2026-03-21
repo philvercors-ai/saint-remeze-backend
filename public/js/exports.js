@@ -79,7 +79,12 @@ async function exportPDF(data, currentTab) {
     const doc = new jsPDF();
     const pageWidth = doc.internal.pageSize.getWidth();
     const margin = 20;
-    const clean = (s) => String(s || 'N/A').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\x20-\x7E]/g, '');
+    const clean = (s) => String(s || 'N/A')
+        .replace(/\u0153/g, 'oe').replace(/\u0152/g, 'OE')   // œ/Œ → oe/OE (non supporté par Helvetica)
+        .replace(/[\u2018\u2019\u201A\u201B\u02BC]/g, "'")    // apostrophes courbes → '
+        .replace(/[\u201C\u201D\u201E\u201F]/g, '"')           // guillemets courbes → "
+        .replace(/[\u2013\u2014]/g, '-')                       // tirets longs → -
+        .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '');           // garde ASCII + Latin-1 (é,è,ê,à,ç,î,ô,ù…)
 
     // --- PAGE 1 : GRAPHIQUES ---
     doc.setFontSize(22).setFont('helvetica', 'bold').setTextColor(37, 99, 235).text("Saint-Remèze", margin, 20);
