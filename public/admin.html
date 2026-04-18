@@ -102,7 +102,7 @@
                 <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.7</button>
             </div>
             <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-success" onclick="exportPDF(getFilteredData(), window.currentTab)">📄 PDF</button>
+                <button class="btn btn-success" onclick="exportPDF(getFilteredData(), window.currentTab, document.getElementById('dateFrom').value, document.getElementById('dateTo').value)">📄 PDF</button>
                 <button class="btn btn-secondary" onclick="exportCSV(getFilteredData(), window.currentTab)">📊 CSV</button>
                 <button class="btn btn-danger" onclick="logout()">Déconnexion</button>
             </div>

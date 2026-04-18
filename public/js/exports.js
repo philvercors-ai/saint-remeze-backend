@@ -73,7 +73,7 @@ function drawBarChart(doc, x, y, width, dataObj, title) {
 }
 
 // --- EXPORT PDF ---
-async function exportPDF(data, currentTab) {
+async function exportPDF(data, currentTab, dateFrom, dateTo) {
     if (!data || data.length === 0) return alert('Aucune donnée');
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
@@ -86,11 +86,28 @@ async function exportPDF(data, currentTab) {
         .replace(/[\u2013\u2014]/g, '-')                       // tirets longs → -
         .replace(/[^\x20-\x7E\u00A0-\u00FF]/g, '');           // garde ASCII + Latin-1 (é,è,ê,à,ç,î,ô,ù…)
 
+    const fmtDate = (iso) => {
+        if (!iso) return null;
+        const [y, m, d] = iso.split('-');
+        return `${d}/${m}/${y}`;
+    };
+
     // --- PAGE 1 : GRAPHIQUES ---
-    doc.setFontSize(22).setFont('helvetica', 'bold').setTextColor(37, 99, 235).text("Saint-Remèze", margin, 20);
+    doc.setFontSize(22).setFont('helvetica', 'bold').setTextColor(37, 99, 235).text("Saint-Remeze", margin, 20);
     doc.setDrawColor(37, 99, 235).setLineWidth(0.5).line(margin, 25, pageWidth - margin, 25);
-    const reportTitle = currentTab === 'archived' ? "Rapport des Signalements Archivés" : "Rapport des Signalements Actifs";
-    doc.setFontSize(18).setTextColor(0).text(reportTitle, pageWidth / 2, 45, { align: 'center' });
+    const reportTitle = currentTab === 'archived' ? "Rapport des Signalements Archives" : "Rapport des Signalements Actifs";
+    doc.setFontSize(18).setTextColor(0).text(reportTitle, pageWidth / 2, 40, { align: 'center' });
+
+    // Période et nombre de signalements
+    let periodText = '';
+    if (dateFrom && dateTo)       periodText = `Periode : du ${fmtDate(dateFrom)} au ${fmtDate(dateTo)}`;
+    else if (dateFrom)            periodText = `Periode : a partir du ${fmtDate(dateFrom)}`;
+    else if (dateTo)              periodText = `Periode : jusqu'au ${fmtDate(dateTo)}`;
+    else                          periodText = `Tous les signalements`;
+    doc.setFontSize(11).setFont('helvetica', 'normal').setTextColor(80)
+       .text(periodText, pageWidth / 2, 50, { align: 'center' });
+    doc.setFontSize(10).setTextColor(120)
+       .text(`${data.length} signalement(s)  |  Genere le ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 57, { align: 'center' });
 
     const statsStatus = {}; const statsCat = {};
     data.forEach(r => {
@@ -98,8 +115,8 @@ async function exportPDF(data, currentTab) {
         statsCat[r.category] = (statsCat[r.category] || 0) + 1;
     });
 
-    drawPieChart(doc, 60, 100, 25, statsStatus, "Répartition par Statut");
-    drawBarChart(doc, margin, 150, pageWidth - (margin * 2), statsCat, "Répartition par Catégories");
+    drawPieChart(doc, 60, 115, 25, statsStatus, "Repartition par Statut");
+    drawBarChart(doc, margin, 165, pageWidth - (margin * 2), statsCat, "Repartition par Categories");
 
     // --- PAGES DÉTAILS ---
     for (let i = 0; i < data.length; i++) {
