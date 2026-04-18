@@ -99,11 +99,11 @@
         <div class="header">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <h1 style="font-size: 1.25rem;">Saint-Remèze - Gestion</h1>
-                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.3</button>
+                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.7</button>
             </div>
             <div style="display: flex; gap: 0.5rem;">
-                <button class="btn btn-success" onclick="exportPDF(window.currentTab === 'active' ? window.allData : window.archivedData, window.currentTab)">📄 PDF</button>
-                <button class="btn btn-secondary" onclick="exportCSV(window.currentTab === 'active' ? window.allData : window.archivedData, window.currentTab)">📊 CSV</button>
+                <button class="btn btn-success" onclick="exportPDF(getFilteredData(), window.currentTab)">📄 PDF</button>
+                <button class="btn btn-secondary" onclick="exportCSV(getFilteredData(), window.currentTab)">📊 CSV</button>
                 <button class="btn btn-danger" onclick="logout()">Déconnexion</button>
             </div>
         </div>
@@ -134,7 +134,7 @@
             </div>
 
             <div class="filters">
-                <input type="text" id="search" placeholder="Rechercher..." onkeyup="filterTable()" style="flex: 1; min-width: 200px; padding: 0.6rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                <input type="text" id="search" placeholder="Rechercher..." onkeyup="filterTable()" style="flex: 1; min-width: 180px; padding: 0.6rem; border-radius: 4px; border: 1px solid #cbd5e1;">
                 <select id="statusFilter" onchange="filterTable()" style="padding: 0.6rem; border-radius: 4px; border: 1px solid #cbd5e1;">
                     <option value="">Tous les statuts</option>
                     <option value="En attente">En attente</option>
@@ -143,6 +143,11 @@
                     <option value="Terminée">Terminée</option>
                     <option value="Rejetée">Rejetée</option>
                 </select>
+                <label style="font-size:13px; color:#64748b; white-space:nowrap;">Du</label>
+                <input type="date" id="dateFrom" onchange="filterTable()" style="padding: 0.6rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                <label style="font-size:13px; color:#64748b; white-space:nowrap;">Au</label>
+                <input type="date" id="dateTo" onchange="filterTable()" style="padding: 0.6rem; border-radius: 4px; border: 1px solid #cbd5e1;">
+                <button class="btn btn-secondary" onclick="resetFilters()" style="font-size:13px; padding: 0.5rem 0.9rem;" title="Réinitialiser les filtres">↺</button>
             </div>
 
             <table>
@@ -357,15 +362,35 @@
             }).join('');
         }
 
+        function applyFilters(data) {
+            const s        = document.getElementById('search').value.toLowerCase();
+            const f        = document.getElementById('statusFilter').value;
+            const dateFrom = document.getElementById('dateFrom').value;
+            const dateTo   = document.getElementById('dateTo').value;
+            return data.filter(r => {
+                const matchSearch = r.title.toLowerCase().includes(s) || (r.user?.name || r.name || '').toLowerCase().includes(s);
+                const matchStatus = f === '' || r.status === f;
+                const rDate = new Date(r.createdAt);
+                const matchFrom = !dateFrom || rDate >= new Date(dateFrom);
+                const matchTo   = !dateTo   || rDate <= new Date(dateTo + 'T23:59:59');
+                return matchSearch && matchStatus && matchFrom && matchTo;
+            });
+        }
+
+        function getFilteredData() {
+            return applyFilters(currentTab === 'active' ? allData : archivedData);
+        }
+
         function filterTable() {
-            const s = document.getElementById('search').value.toLowerCase();
-            const f = document.getElementById('statusFilter').value;
-            const data = currentTab === 'active' ? allData : archivedData;
-            const filtered = data.filter(r => 
-                (r.title.toLowerCase().includes(s) || (r.user?.name || r.name || '').toLowerCase().includes(s)) &&
-                (f === "" || r.status === f)
-            );
-            renderTable(filtered, currentTab === 'archived');
+            renderTable(getFilteredData(), currentTab === 'archived');
+        }
+
+        function resetFilters() {
+            document.getElementById('search').value = '';
+            document.getElementById('statusFilter').value = '';
+            document.getElementById('dateFrom').value = '';
+            document.getElementById('dateTo').value = '';
+            filterTable();
         }
 
         function switchTab(tab) {
@@ -584,7 +609,19 @@
 
             <div class="cl-version">
                 <div class="cl-version-header">
-                    <span class="cl-tag current">v7.2.3</span>
+                    <span class="cl-tag current">v7.2.7</span>
+                    <span class="cl-date">18 avril 2026</span>
+                </div>
+                <ul class="cl-list">
+                    <li>Filtre temporel (Du / Au) sur l'export PDF et CSV</li>
+                    <li>Les exports respectent tous les filtres actifs (statut, recherche, dates)</li>
+                    <li>Bouton ↺ pour réinitialiser tous les filtres</li>
+                </ul>
+            </div>
+
+            <div class="cl-version">
+                <div class="cl-version-header">
+                    <span class="cl-tag">v7.2.3</span>
                     <span class="cl-date">13 mars 2026</span>
                 </div>
                 <ul class="cl-list">
