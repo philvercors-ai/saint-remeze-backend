@@ -99,7 +99,7 @@
         <div class="header">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <h1 style="font-size: 1.25rem;">Saint-Remèze - Gestion</h1>
-                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.7</button>
+                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.8</button>
             </div>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="btn btn-success" onclick="exportPDF(getFilteredData(), window.currentTab, document.getElementById('dateFrom').value, document.getElementById('dateTo').value)">📄 PDF</button>
@@ -609,11 +609,12 @@
 
             <div class="cl-version">
                 <div class="cl-version-header">
-                    <span class="cl-tag current">v7.2.7</span>
+                    <span class="cl-tag current">v7.2.8</span>
                     <span class="cl-date">18 avril 2026</span>
                 </div>
                 <ul class="cl-list">
                     <li>Filtre temporel (Du / Au) sur l'export PDF et CSV</li>
+                    <li>Plage de dates affichée sur la page 1 du PDF</li>
                     <li>Les exports respectent tous les filtres actifs (statut, recherche, dates)</li>
                     <li>Bouton ↺ pour réinitialiser tous les filtres</li>
                 </ul>
