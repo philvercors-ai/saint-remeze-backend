@@ -87,7 +87,7 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 24px;
-      max-width: 720px;
+      max-width: 980px;
       margin: 0 auto;
       padding: 0 20px 60px;
     }
@@ -123,8 +123,9 @@
       font-size: 32px;
     }
 
-    .card-icon.blue { background: #e8eef5; }
-    .card-icon.gold { background: #fdf3dc; }
+    .card-icon.blue  { background: #e8eef5; }
+    .card-icon.gold  { background: #fdf3dc; }
+    .card-icon.admin { background: #f0eaf8; }
 
     .card h3 {
       font-family: 'Playfair Display', serif;
@@ -149,10 +150,12 @@
       transition: background 0.15s;
     }
 
-    .card-btn.navy { background: var(--navy); color: #fff; }
-    .card-btn.navy:hover { background: #0f2a44; }
-    .card-btn.gold { background: var(--gold); color: #fff; }
-    .card-btn.gold:hover { background: #b8923e; }
+    .card-btn.navy  { background: var(--navy); color: #fff; }
+    .card-btn.navy:hover  { background: #0f2a44; }
+    .card-btn.gold  { background: var(--gold); color: #fff; }
+    .card-btn.gold:hover  { background: #b8923e; }
+    .card-btn.admin { background: #7c3aed; color: #fff; }
+    .card-btn.admin:hover { background: #6d28d9; }
 
     /* ── FOOTER ── */
     footer {
@@ -202,6 +205,13 @@
       <h3>Réservation de salles</h3>
       <p>Consultez la disponibilité et réservez les salles communales en ligne.</p>
       <span class="card-btn gold">Accéder →</span>
+    </a>
+
+    <a class="card" href="https://saint-remeze-backend.onrender.com/admin.html" target="_blank" rel="noopener">
+      <div class="card-icon admin">⚙️</div>
+      <h3>Administration</h3>
+      <p>Gérez les signalements citoyens, les statuts et exportez les rapports.</p>
+      <span class="card-btn admin">Accéder →</span>
     </a>
 
   </div>
