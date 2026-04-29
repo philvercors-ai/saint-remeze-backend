@@ -99,7 +99,7 @@
         <div class="header">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <h1 style="font-size: 1.25rem;">Saint-Remèze - Gestion</h1>
-                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.8</button>
+                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.9</button>
             </div>
             <div style="display: flex; gap: 0.5rem;">
                 <button class="btn btn-success" onclick="exportPDF(getFilteredData(), window.currentTab, document.getElementById('dateFrom').value, document.getElementById('dateTo').value)">📄 PDF</button>
@@ -609,7 +609,20 @@
 
             <div class="cl-version">
                 <div class="cl-version-header">
-                    <span class="cl-tag current">v7.2.8</span>
+                    <span class="cl-tag current">v7.2.9</span>
+                    <span class="cl-date">29 avril 2026</span>
+                </div>
+                <ul class="cl-list">
+                    <li>Nouvelle route API : correction de remarque par le citoyen (<code>PATCH /api/remarks/:id/edit</code>)</li>
+                    <li>Vérification de propriété : seul l'auteur peut modifier sa remarque</li>
+                    <li>Modification autorisée uniquement si statut "En attente" ou "Vue"</li>
+                    <li>Champs modifiables : titre, catégorie, description</li>
+                </ul>
+            </div>
+
+            <div class="cl-version">
+                <div class="cl-version-header">
+                    <span class="cl-tag">v7.2.8</span>
                     <span class="cl-date">18 avril 2026</span>
                 </div>
                 <ul class="cl-list">
