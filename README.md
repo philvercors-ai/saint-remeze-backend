@@ -1,4 +1,4 @@
-# Saint-Remèze Backend v7.2.9
+# Saint-Remèze Backend v7.2.10
 
 ## Installation
 ```bash
@@ -12,6 +12,9 @@ Admin: admin@saint-remeze.fr / admin123
 Dashboard: http://localhost:10000/admin
 
 ## Historique des versions
+
+### v7.2.10
+- Page d'accueil (index.html) : tuile Administration ajoutée pour accès direct au dashboard
 
 ### v7.2.9
 - Nouvelle route `PATCH /api/remarks/:id/edit` : correction d'une remarque par son auteur

@@ -96,7 +96,7 @@ const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log('🚀 ========================================');
-  console.log('   Serveur Saint-Remèze v7.2.9 - Render');
+  console.log('   Serveur Saint-Remèze v7.2.10 - Render');
   console.log('   ========================================');
   console.log('   🌐 Port:', PORT);
   console.log('   🌍 Environment:', process.env.NODE_ENV || 'production');
