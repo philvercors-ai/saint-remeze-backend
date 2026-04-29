@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const Remark = require('../models/Remark');
-const { optionalAuth } = require('../middleware/auth');
+const auth = require('../middleware/auth');
+const { optionalAuth } = auth;
 const multer = require('multer');
 const { storage, cloudinary } = require('../config/cloudinary');
 
@@ -314,6 +315,44 @@ router.patch('/:id/view', optionalAuth, async (req, res) => {
     res.json({ success: true, remark, changed: true });
   } catch (error) {
     console.error('❌ Erreur PATCH view:', error);
+    res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
+  }
+});
+
+// PATCH /:id/edit — Correction par le citoyen propriétaire
+router.patch('/:id/edit', auth, async (req, res) => {
+  try {
+    const remark = await Remark.findById(req.params.id);
+    if (!remark) {
+      return res.status(404).json({ success: false, message: 'Remarque non trouvée' });
+    }
+
+    if (!remark.user || remark.user.toString() !== req.user.userId) {
+      return res.status(403).json({ success: false, message: 'Action non autorisée' });
+    }
+
+    if (!['En attente', 'Vue'].includes(remark.status)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Cette remarque ne peut plus être modifiée car elle est en cours de traitement'
+      });
+    }
+
+    const { title, description, category } = req.body;
+    if (!title?.trim() || !category) {
+      return res.status(400).json({ success: false, message: 'Titre et catégorie sont obligatoires' });
+    }
+
+    remark.title = title.trim();
+    remark.description = description?.trim() || '';
+    remark.category = category;
+    await remark.save();
+    await remark.populate('user', 'name email phone');
+
+    console.log('✅ Remarque modifiée par le citoyen:', remark._id);
+    res.json({ success: true, remark });
+  } catch (error) {
+    console.error('❌ Erreur PATCH edit:', error);
     res.status(500).json({ success: false, message: 'Erreur serveur', error: error.message });
   }
 });
