@@ -118,15 +118,29 @@ async function exportPDF(data, currentTab, dateFrom, dateTo) {
         const reportTitle = currentTab === 'archived' ? "Rapport des Signalements Archives" : "Rapport des Signalements Actifs";
         doc.setFontSize(18).setTextColor(0).text(reportTitle, pageWidth / 2, 40, { align: 'center' });
 
-        let periodText = '';
-        if (dateFrom && dateTo)  periodText = `Periode : du ${fmtDate(dateFrom)} au ${fmtDate(dateTo)}`;
-        else if (dateFrom)       periodText = `Periode : a partir du ${fmtDate(dateFrom)}`;
-        else if (dateTo)         periodText = `Periode : jusqu'au ${fmtDate(dateTo)}`;
-        else                     periodText = `Tous les signalements`;
-        doc.setFontSize(11).setFont('helvetica', 'normal').setTextColor(80)
-           .text(periodText, pageWidth / 2, 50, { align: 'center' });
-        doc.setFontSize(10).setTextColor(120)
-           .text(`${data.length} signalement(s)  |  Genere le ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, 57, { align: 'center' });
+        // --- Filtres actifs ---
+        const searchVal = document.getElementById('search')?.value?.trim() || '';
+        const statusVal = document.getElementById('statusFilter')?.value || '';
+        const filterParts = [];
+        if (statusVal)   filterParts.push(`Statut : ${statusVal}`);
+        if (searchVal)   filterParts.push(`Recherche : "${searchVal}"`);
+        if (dateFrom && dateTo) filterParts.push(`Du ${fmtDate(dateFrom)} au ${fmtDate(dateTo)}`);
+        else if (dateFrom)      filterParts.push(`A partir du ${fmtDate(dateFrom)}`);
+        else if (dateTo)        filterParts.push(`Jusqu'au ${fmtDate(dateTo)}`);
+
+        let headerY = 50;
+        if (filterParts.length > 0) {
+            const filterLine = filterParts.join('  |  ');
+            // Fond gris clair pour la bande de filtres
+            doc.setFillColor(241, 245, 249);
+            doc.roundedRect(margin, 44, pageWidth - margin * 2, 10, 2, 2, 'F');
+            doc.setFontSize(9).setFont('helvetica', 'italic').setTextColor(71, 85, 105);
+            doc.text('Filtres : ' + filterLine, pageWidth / 2, 50.5, { align: 'center' });
+            headerY = 60;
+        }
+
+        doc.setFontSize(10).setFont('helvetica', 'normal').setTextColor(120)
+           .text(`${data.length} signalement(s)  |  Genere le ${new Date().toLocaleDateString('fr-FR')}`, pageWidth / 2, headerY, { align: 'center' });
 
         const statsStatus = {}; const statsCat = {};
         data.forEach(r => {
