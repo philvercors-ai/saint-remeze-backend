@@ -201,14 +201,26 @@ async function exportPDF(data, currentTab, dateFrom, dateTo) {
           if (!photoUrl || !photoUrl.startsWith('http')) continue;
           try {
             const img = await loadImage(photoUrl);
-            const imgW = 120;
             const ratio = img.width / img.height;
-            const imgH = imgW / ratio;
-            const imgX = (pageWidth - imgW) / 2;
-            if (y + imgH > doc.internal.pageSize.getHeight() - margin) {
+            const pageH = doc.internal.pageSize.getHeight();
+            // Available height on current page (with bottom margin + 5mm padding)
+            let availH = pageH - margin - y - 5;
+            // If remaining space is too small, start a new page
+            if (availH < 30) {
               doc.addPage();
               y = margin;
+              availH = pageH - margin * 2;
             }
+            // Image max width: 90mm (reduced from 120) to leave room for text
+            let imgW = Math.min(90, pageWidth - margin * 2);
+            let imgH = imgW / ratio;
+            // Scale down to fit remaining page height if needed
+            if (imgH > availH) {
+              imgH = availH;
+              imgW = imgH * ratio;
+              if (imgW > 90) { imgW = 90; imgH = imgW / ratio; }
+            }
+            const imgX = (pageWidth - imgW) / 2;
             doc.addImage(img, 'JPEG', imgX, y, imgW, imgH);
             y += imgH + 10;
           } catch (e) {

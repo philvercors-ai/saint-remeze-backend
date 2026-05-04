@@ -1,4 +1,4 @@
-# Saint-Remèze Backend v7.2.10
+# Saint-Remèze Backend v7.2.11
 
 ## Installation
 ```bash
@@ -12,6 +12,10 @@ Admin: admin@saint-remeze.fr / admin123
 Dashboard: http://localhost:10000/admin
 
 ## Historique des versions
+
+### v7.2.11
+- Export PDF : photo redimensionnée dynamiquement pour tenir sur la même page que le texte du signalement
+- Largeur image réduite à 90mm max, hauteur adaptée à l'espace restant sur la page
 
 ### v7.2.10
 - Page d'accueil (index.html) : tuile Administration ajoutée pour accès direct au dashboard
