@@ -74,6 +74,13 @@ async function sendStatusChangeEmail(user, remark, newStatus) {
                   <span style="display:inline-block;background:${info.color};color:#fff;padding:6px 16px;border-radius:99px;font-size:14px;font-weight:700;">
                     ${info.emoji} ${newStatus}
                   </span>
+                  ${remark.adminNotes ? `
+                  <p style="margin:16px 0 6px;font-size:12px;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.06em;">
+                    Commentaire de la mairie
+                  </p>
+                  <p style="margin:0;font-size:14px;color:#1e293b;line-height:1.6;background:#f1f5f9;border-left:3px solid ${info.color};padding:10px 14px;border-radius:0 6px 6px 0;">
+                    ${remark.adminNotes}
+                  </p>` : ''}
                 </td>
               </tr>
             </table>
