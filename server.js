@@ -20,6 +20,7 @@ app.use(helmet({
 // ── SÉCURITÉ : CORS restreint aux origines autorisées ────────────────────────
 const allowedOrigins = [
   'https://saint-remeze-frontend.vercel.app',
+  'https://saint-remeze-backend.onrender.com',
   'http://localhost:3000'
 ];
 app.use(cors({
