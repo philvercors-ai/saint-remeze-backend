@@ -1,0 +1,17 @@
+# Dépendances
+node_modules/
+
+# Variables d'environnement — NE JAMAIS COMMITER
+.env
+.env.*
+!.env.example
+
+# Uploads locaux
+uploads/
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
