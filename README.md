@@ -60,6 +60,13 @@ Render redémarre automatiquement le service. Aucune modification de code n'est 
 
 ## Historique des versions
 
+### v7.2.13
+- Sécurité : Helmet activé (en-têtes HTTP de protection)
+- Sécurité : CORS restreint au domaine frontend Vercel uniquement
+- Sécurité : Rate limiting — 10 tentatives/15 min (login/register), 3/heure (mot de passe oublié), 120 req/min (API générale)
+- Sécurité : Routes admin protégées par middleware `adminAuth` (token JWT + rôle admin vérifié)
+- Sécurité : URI MongoDB retirée du code source — variable d'environnement `MONGODB_URI` obligatoire
+
 ### v7.2.12
 - Notification email automatique au citoyen à chaque changement de statut de son signalement
 - Email HTML envoyé via Resend (statuts : Vue, En cours, Terminée, Rejetée)

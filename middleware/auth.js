@@ -1,49 +1,47 @@
 const jwt = require('jsonwebtoken');
 
+const JWT_SECRET = process.env.JWT_SECRET || 'votre_secret_jwt_temporaire';
+
+// Authentification obligatoire
 const auth = (req, res, next) => {
   try {
-    // Récupérer le token depuis le header Authorization
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: 'Authentification requise' 
-      });
+      return res.status(401).json({ success: false, message: 'Authentification requise' });
     }
-
-    // Vérifier et décoder le token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'votre_secret_jwt_temporaire');
-    
-    // Ajouter les infos utilisateur à la requête
-    req.user = decoded;
-    
+    req.user = jwt.verify(token, JWT_SECRET);
     next();
   } catch (error) {
-    console.error('Erreur auth:', error);
-    res.status(401).json({ 
-      success: false, 
-      message: 'Token invalide ou expiré' 
-    });
+    res.status(401).json({ success: false, message: 'Token invalide ou expiré' });
   }
 };
 
-// Middleware optionnel (continue même sans auth)
+// Authentification optionnelle (continue même sans token valide)
 const optionalAuth = (req, res, next) => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-    
     if (token) {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'votre_secret_jwt_temporaire');
-      req.user = decoded;
+      req.user = jwt.verify(token, JWT_SECRET);
     }
-    
-    next();
-  } catch (error) {
-    // Continue sans authentification
-    next();
+  } catch (_) {
+    // Silencieux — pas de token ou token invalide, on continue sans user
   }
+  next();
+};
+
+// Authentification admin obligatoire (auth + rôle admin)
+const adminAuth = (req, res, next) => {
+  auth(req, res, () => {
+    if (req.user?.role !== 'admin') {
+      return res.status(403).json({
+        success: false,
+        message: 'Accès réservé à l\'administration'
+      });
+    }
+    next();
+  });
 };
 
 module.exports = auth;
 module.exports.optionalAuth = optionalAuth;
+module.exports.adminAuth = adminAuth;

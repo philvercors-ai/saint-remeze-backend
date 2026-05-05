@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Remark = require('../models/Remark');
 const auth = require('../middleware/auth');
-const { optionalAuth } = auth;
+const { optionalAuth, adminAuth } = auth;
 const multer = require('multer');
 const { storage, cloudinary } = require('../config/cloudinary');
 const { sendStatusChangeEmail } = require('../utils/email');
@@ -24,7 +24,7 @@ const upload = multer({
 });
 
 // GET /admin/all
-router.get('/admin/all', optionalAuth, async (req, res) => {
+router.get('/admin/all', adminAuth, async (req, res) => {
   try {
     console.log('👑 GET /api/remarks/admin/all');
     const remarks = await Remark.find({ archived: false })
@@ -53,7 +53,7 @@ router.get('/admin/all', optionalAuth, async (req, res) => {
 });
 
 // DELETE /admin/:id
-router.delete('/admin/:id', optionalAuth, async (req, res) => {
+router.delete('/admin/:id', adminAuth, async (req, res) => {
   try {
     console.log('🗑️  DELETE /api/remarks/admin/' + req.params.id);
     
@@ -229,7 +229,7 @@ router.post('/', optionalAuth, upload.array('photos', 3), async (req, res) => {
 });
 
 // PUT /:id
-router.put('/:id', optionalAuth, async (req, res) => {
+router.put('/:id', adminAuth, async (req, res) => {
   try {
     console.log('📝 PUT /api/remarks/' + req.params.id);
 
@@ -285,7 +285,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
 });
 
 // PATCH /:id/view - Marquer comme Vue quand l'admin ouvre la remarque
-router.patch('/:id/view', optionalAuth, async (req, res) => {
+router.patch('/:id/view', adminAuth, async (req, res) => {
   try {
     const remark = await Remark.findById(req.params.id).populate('user', 'name email phone');
     if (!remark) return res.status(404).json({ success: false, message: 'Remarque non trouvée' });

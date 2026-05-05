@@ -1,42 +1,82 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const path = require('path');
 require('dotenv').config();
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// ── SÉCURITÉ : En-têtes HTTP ──────────────────────────────────────────────────
+app.use(helmet({
+  crossOriginResourcePolicy: { policy: 'cross-origin' }, // Cloudinary images
+  contentSecurityPolicy: false // désactivé car admin.html charge des CDN externes
+}));
 
-// Servir les fichiers statiques
+// ── SÉCURITÉ : CORS restreint aux origines autorisées ────────────────────────
+const allowedOrigins = [
+  'https://saint-remeze-frontend.vercel.app',
+  'http://localhost:3000'
+];
+app.use(cors({
+  origin: (origin, callback) => {
+    // Autorise les requêtes sans origin (Render admin.html, Postman, mobile PWA)
+    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    callback(new Error('CORS non autorisé pour cette origine'));
+  },
+  credentials: true
+}));
+
+// ── SÉCURITÉ : Rate limiting ──────────────────────────────────────────────────
+// Limite générale API
+app.use('/api/', rateLimit({
+  windowMs: 60 * 1000,       // 1 minute
+  max: 120,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Trop de requêtes, veuillez patienter.' }
+}));
+
+// Limite stricte sur les routes d'authentification
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,  // 15 minutes
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Trop de tentatives, réessayez dans 15 minutes.' }
+});
+// Limite très stricte sur "mot de passe oublié" (anti-spam email)
+const forgotLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,  // 1 heure
+  max: 3,
+  message: { success: false, message: 'Trop de demandes de réinitialisation, réessayez dans 1 heure.' }
+});
+
+app.use('/api/auth/login',            authLimiter);
+app.use('/api/auth/register',         authLimiter);
+app.use('/api/auth/forgot-password',  forgotLimiter);
+
+// ── BODY PARSERS ──────────────────────────────────────────────────────────────
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// ── FICHIERS STATIQUES ────────────────────────────────────────────────────────
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 app.use(express.static('public'));
 
-// Route racine → Portail citoyen
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+// ── ROUTES ────────────────────────────────────────────────────────────────────
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/admin', (req, res) => res.redirect('/admin.html'));
 
-// Route admin - Redirection vers admin.html
-app.get('/admin', (req, res) => {
-  res.redirect('/admin.html');
-});
-
-// Routes API
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/remarks', require('./routes/remarks'));
+app.use('/api/auth',          require('./routes/auth'));
+app.use('/api/remarks',       require('./routes/remarks'));
 app.use('/api/notifications', require('./routes/notifications'));
-app.use('/api/archive', require('./routes/archive'));
+app.use('/api/archive',       require('./routes/archive'));
 
-// ===== TÂCHE CRON : Archivage automatique quotidien =====
-// Optionnel : Si vous voulez archiver automatiquement tous les jours
-
+// ── ARCHIVAGE AUTO ────────────────────────────────────────────────────────────
 const Remark = require('./models/Remark');
 
-// Lancer archivage au démarrage
 (async () => {
   try {
     const result = await Remark.autoArchive();
@@ -46,7 +86,6 @@ const Remark = require('./models/Remark');
   }
 })();
 
-// Archivage quotidien (à 2h du matin)
 setInterval(async () => {
   const now = new Date();
   if (now.getHours() === 2 && now.getMinutes() === 0) {
@@ -57,23 +96,29 @@ setInterval(async () => {
       console.error('❌ Erreur archivage auto:', err);
     }
   }
-}, 60000); // Vérifier chaque minute
+}, 60000);
 
+// ── MONGODB ───────────────────────────────────────────────────────────────────
+if (!process.env.MONGODB_URI) {
+  console.error('❌ MONGODB_URI non défini dans les variables d\'environnement !');
+  process.exit(1);
+}
+if (!process.env.JWT_SECRET) {
+  console.warn('⚠️  JWT_SECRET non défini — tokens non sécurisés en production !');
+}
 
-
-
-// Connexion MongoDB
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://philvercorsai:R3gVz74RBCiCgxY4@cluster0.5r9mq.mongodb.net/saint-remeze?retryWrites=true&w=majority&appName=Cluster0';
-
-mongoose.connect(MONGODB_URI)
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ Connecté à MongoDB Atlas'))
   .catch(err => {
     console.error('❌ Erreur MongoDB:', err);
     process.exit(1);
   });
 
-// Gestion erreurs
+// ── GESTION ERREURS ───────────────────────────────────────────────────────────
 app.use((err, req, res, next) => {
+  if (err.message === 'CORS non autorisé pour cette origine') {
+    return res.status(403).json({ success: false, message: err.message });
+  }
   console.error('❌ Erreur serveur:', err);
   res.status(500).json({
     success: false,
@@ -82,24 +127,21 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 pour routes non trouvées
 app.use((req, res) => {
-  console.log('⚠️  Route non trouvée:', req.method, req.path);
-  res.status(404).json({
-    success: false,
-    message: 'Route non trouvée',
-    path: req.path
-  });
+  res.status(404).json({ success: false, message: 'Route non trouvée' });
 });
 
+// ── DÉMARRAGE ─────────────────────────────────────────────────────────────────
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log('🚀 ========================================');
-  console.log('   Serveur Saint-Remèze v7.2.12 - Render');
+  console.log('   Serveur Saint-Remèze v7.2.13 - Render');
   console.log('   ========================================');
   console.log('   🌐 Port:', PORT);
   console.log('   🌍 Environment:', process.env.NODE_ENV || 'production');
-  console.log('   📊 MongoDB:', mongoose.connection.readyState === 1 ? 'Connected' : 'Disconnected');
+  console.log('   🔒 Helmet: actif');
+  console.log('   🔒 CORS: restreint');
+  console.log('   🔒 Rate limiting: actif');
   console.log('   ========================================');
 });
