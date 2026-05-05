@@ -1,6 +1,6 @@
 {
   "name": "saint-remeze-backend",
-  "version": "7.2.11",
+  "version": "7.2.12",
   "description": "Backend API Saint-Remèze - Gestion remarques citoyennes",
   "main": "server.js",
   "scripts": {

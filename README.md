@@ -60,6 +60,11 @@ Render redémarre automatiquement le service. Aucune modification de code n'est 
 
 ## Historique des versions
 
+### v7.2.12
+- Notification email automatique au citoyen à chaque changement de statut de son signalement
+- Email HTML envoyé via Resend (statuts : Vue, En cours, Terminée, Rejetée)
+- Nouveau fichier `utils/email.js` — helper réutilisable pour les envois
+
 ### v7.2.11
 - Export PDF : photo redimensionnée dynamiquement pour tenir sur la même page que le texte du signalement
 - Largeur image réduite à 90mm max, hauteur adaptée à l'espace restant sur la page

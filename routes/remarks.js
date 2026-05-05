@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const { optionalAuth } = auth;
 const multer = require('multer');
 const { storage, cloudinary } = require('../config/cloudinary');
+const { sendStatusChangeEmail } = require('../utils/email');
 
 // Configuration Multer avec Cloudinary Storage
 const upload = multer({
@@ -267,6 +268,7 @@ router.put('/:id', optionalAuth, async (req, res) => {
           read: false
         });
         console.log('🔔 ✅ Notification créée:', notif._id, 'pour user:', remark.user._id);
+        await sendStatusChangeEmail(remark.user, remark, req.body.status);
       } catch (notifError) {
         console.error('❌ Erreur création notification:', notifError.message);
       }
@@ -306,6 +308,7 @@ router.patch('/:id/view', optionalAuth, async (req, res) => {
           remarkId: remark._id,
           read: false
         });
+        await sendStatusChangeEmail(remark.user, remark, 'Vue');
       } catch (notifError) {
         console.error('❌ Erreur notification vue:', notifError.message);
       }

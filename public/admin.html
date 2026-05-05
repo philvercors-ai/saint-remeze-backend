@@ -120,7 +120,7 @@
         <div class="header">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <h1 style="font-size: 1.25rem;">Saint-Remèze - Gestion</h1>
-                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.11</button>
+                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.12</button>
             </div>
             <div style="display: flex; gap: 0.5rem;">
                 <button id="btnExportPDF" class="btn btn-success" onclick="exportPDF(getFilteredData(), window.currentTab, document.getElementById('dateFrom').value, document.getElementById('dateTo').value)">📄 PDF</button>
@@ -630,7 +630,18 @@
 
             <div class="cl-version">
                 <div class="cl-version-header">
-                    <span class="cl-tag current">v7.2.11</span>
+                    <span class="cl-tag current">v7.2.12</span>
+                    <span class="cl-date">5 mai 2026</span>
+                </div>
+                <ul class="cl-list">
+                    <li>Email automatique au citoyen à chaque changement de statut (Vue, En cours, Terminée, Rejetée)</li>
+                    <li>Email HTML avec lien direct vers le signalement</li>
+                </ul>
+            </div>
+
+            <div class="cl-version">
+                <div class="cl-version-header">
+                    <span class="cl-tag">v7.2.11</span>
                     <span class="cl-date">4 mai 2026</span>
                 </div>
                 <ul class="cl-list">
