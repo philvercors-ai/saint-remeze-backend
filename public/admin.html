@@ -123,6 +123,7 @@
                 <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.13</button>
             </div>
             <div style="display: flex; gap: 0.5rem;">
+                <a href="/manuel-admin.html" target="_blank" class="btn btn-secondary" title="Manuel administrateur">📖 Manuel</a>
                 <button id="btnExportPDF" class="btn btn-success" onclick="exportPDF(getFilteredData(), window.currentTab, document.getElementById('dateFrom').value, document.getElementById('dateTo').value)">📄 PDF</button>
                 <button class="btn btn-secondary" onclick="exportCSV(getFilteredData(), window.currentTab)">📊 CSV</button>
                 <button class="btn btn-danger" onclick="logout()">Déconnexion</button>
