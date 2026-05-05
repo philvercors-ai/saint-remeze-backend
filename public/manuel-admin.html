@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Manuel Administrateur — Saint-Remèze</title>
+  <link rel="icon" href="/logo-saint-remeze.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --navy:   #1a3a5a;
+      --gold:   #c9a84c;
+      --bg:     #f7f4ef;
+      --white:  #ffffff;
+      --border: #d4cfc7;
+      --text:   #374151;
+      --muted:  #6b7280;
+      --red:    #dc2626;
+      --green:  #16a34a;
+      --blue:   #2563eb;
+      --purple: #7c3aed;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Source Sans 3', Arial, sans-serif;
+      background: var(--bg); color: var(--text);
+      font-size: 16px; line-height: 1.7;
+    }
+
+    header {
+      background: var(--navy); padding: 18px 32px;
+      display: flex; align-items: center; gap: 14px;
+      position: sticky; top: 0; z-index: 100;
+      box-shadow: 0 2px 12px rgba(0,0,0,.25);
+    }
+    header img { height: 42px; width: 42px; border-radius: 6px; }
+    .header-text h1 { font-family:'Playfair Display',serif; font-size:19px; color:#fff; font-weight:700; }
+    .header-text span { font-size:11px; color:var(--gold); font-weight:500; letter-spacing:.07em; text-transform:uppercase; }
+
+    .hero {
+      background: linear-gradient(135deg, #0f2a44 0%, #1a3a5a 100%);
+      color: #fff; text-align: center; padding: 52px 24px 44px;
+    }
+    .hero h2 { font-family:'Playfair Display',serif; font-size:30px; margin-bottom:12px; }
+    .hero p { font-size:15px; color:rgba(255,255,255,.75); max-width:520px; margin:0 auto 24px; }
+    .hero-badge {
+      display:inline-block; background:rgba(201,168,76,.2);
+      border:1px solid var(--gold); color:var(--gold);
+      font-size:12px; font-weight:600; padding:4px 14px;
+      border-radius:99px; letter-spacing:.05em;
+    }
+
+    .toc { max-width:860px; margin:36px auto; padding:0 24px; }
+    .toc-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(170px,1fr)); gap:14px; }
+    .toc-card {
+      background:var(--white); border:1px solid var(--border);
+      border-radius:12px; padding:18px 14px;
+      text-align:center; text-decoration:none; color:var(--navy);
+      font-weight:600; font-size:13px;
+      transition:transform .15s,box-shadow .15s;
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+    }
+    .toc-card:hover { transform:translateY(-3px); box-shadow:0 6px 20px rgba(26,58,90,.12); }
+    .toc-num {
+      width:34px; height:34px; background:var(--navy); color:#fff;
+      border-radius:50%; display:flex; align-items:center; justify-content:center;
+      font-size:14px; font-weight:700;
+    }
+
+    .content { max-width:860px; margin:0 auto; padding:0 24px 80px; }
+
+    .chapter {
+      background:var(--white); border-radius:16px;
+      border:1px solid var(--border); margin-bottom:36px;
+      overflow:hidden; box-shadow:0 2px 12px rgba(26,58,90,.07);
+    }
+    .chapter-header {
+      background:var(--navy); padding:22px 30px;
+      display:flex; align-items:center; gap:14px;
+    }
+    .chapter-num {
+      background:var(--gold); color:var(--navy);
+      width:38px; height:38px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:17px; font-weight:700; flex-shrink:0;
+    }
+    .chapter-header h2 { font-family:'Playfair Display',serif; font-size:21px; color:#fff; }
+    .chapter-body { padding:30px; }
+
+    h3 {
+      font-family:'Playfair Display',serif; font-size:16px; color:var(--navy);
+      margin:26px 0 10px; padding-bottom:5px;
+      border-bottom:2px solid var(--gold); display:inline-block;
+    }
+    h3:first-child { margin-top:0; }
+    p { margin-bottom:14px; }
+    ul,ol { padding-left:22px; margin-bottom:14px; }
+    li { margin-bottom:6px; }
+
+    .steps { list-style:none; padding:0; counter-reset:step; }
+    .steps li {
+      counter-increment:step; display:flex; gap:12px;
+      align-items:flex-start; margin-bottom:14px;
+    }
+    .steps li::before {
+      content:counter(step); background:var(--navy); color:#fff;
+      width:26px; height:26px; border-radius:50%;
+      display:flex; align-items:center; justify-content:center;
+      font-size:12px; font-weight:700; flex-shrink:0; margin-top:3px;
+    }
+
+    .box { border-radius:10px; padding:16px 20px; margin:18px 0; font-size:15px; }
+    .box-tip   { background:#eff6ff; border-left:4px solid var(--blue); }
+    .box-warn  { background:#fffbeb; border-left:4px solid #f59e0b; }
+    .box-alert { background:#fef2f2; border-left:4px solid var(--red); }
+    .box-ok    { background:#f0fdf4; border-left:4px solid var(--green); }
+    .box strong { display:block; margin-bottom:4px; }
+
+    code, .cmd {
+      font-family: 'Courier New', monospace;
+      background:#1e293b; color:#e2e8f0;
+      padding:3px 8px; border-radius:5px; font-size:13px;
+    }
+    .code-block {
+      background:#1e293b; color:#e2e8f0;
+      border-radius:10px; padding:18px 20px;
+      font-family:'Courier New',monospace; font-size:13px;
+      line-height:1.7; margin:14px 0; overflow-x:auto;
+    }
+    .code-block .comment { color:#94a3b8; }
+    .code-block .val { color:#86efac; }
+    .code-block .key { color:#93c5fd; }
+
+    .status-badge {
+      display:inline-flex; align-items:center; gap:5px;
+      padding:3px 10px; border-radius:99px; font-size:13px; font-weight:600;
+    }
+    .s-wait   { background:#fef3c7; color:#92400e; }
+    .s-seen   { background:#ede9fe; color:#5b21b6; }
+    .s-wip    { background:#dbeafe; color:#1e40af; }
+    .s-done   { background:#d1fae5; color:#065f46; }
+    .s-reject { background:#fee2e2; color:#991b1b; }
+
+    table { width:100%; border-collapse:collapse; margin:14px 0 22px; font-size:15px; }
+    th { background:#f1f5f9; text-align:left; padding:10px 14px; font-size:13px; color:var(--muted); font-weight:600; border-bottom:1px solid var(--border); }
+    td { padding:11px 14px; border-bottom:1px solid #f1f5f9; vertical-align:top; }
+    tr:last-child td { border-bottom:none; }
+
+    .print-btn {
+      display:inline-flex; align-items:center; gap:8px;
+      background:var(--gold); color:var(--navy);
+      padding:10px 22px; border-radius:8px;
+      font-size:14px; font-weight:700; border:none; cursor:pointer;
+      margin-top:14px; text-decoration:none;
+    }
+    .print-btn:hover { background:#b8923e; }
+
+    @media print {
+      header { position:static; }
+      .toc,.print-btn { display:none; }
+      .chapter { box-shadow:none; break-inside:avoid; }
+      body { font-size:13px; }
+    }
+    @media (max-width:600px) {
+      .hero h2 { font-size:22px; }
+      .chapter-body { padding:20px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="/logo-saint-remeze.png" alt="Logo" onerror="this.style.display='none'" />
+  <div class="header-text">
+    <h1>Saint-Remèze</h1>
+    <span>Manuel Administrateur</span>
+  </div>
+</header>
+
+<div class="hero">
+  <h2>Manuel Administrateur</h2>
+  <p>Guide complet pour gérer les signalements citoyens, administrer les comptes et maintenir l'application.</p>
+  <span class="hero-badge">Version 7.2 — Mai 2026</span>
+  <br><br>
+  <button class="print-btn" onclick="window.print()">🖨️ Imprimer</button>
+</div>
+
+<!-- Sommaire -->
+<div class="toc">
+  <div class="toc-grid">
+    <a class="toc-card" href="#ch1"><div class="toc-num">1</div>Connexion admin</a>
+    <a class="toc-card" href="#ch2"><div class="toc-num">2</div>Gérer les signalements</a>
+    <a class="toc-card" href="#ch3"><div class="toc-num">3</div>Exports PDF &amp; CSV</a>
+    <a class="toc-card" href="#ch4"><div class="toc-num">4</div>Archives</a>
+    <a class="toc-card" href="#ch5"><div class="toc-num">5</div>Mot de passe admin</a>
+    <a class="toc-card" href="#ch6"><div class="toc-num">6</div>Variables d'environnement</a>
+  </div>
+</div>
+
+<div class="content">
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- CHAPITRE 1 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="chapter" id="ch1">
+    <div class="chapter-header">
+      <div class="chapter-num">1</div>
+      <h2>Connexion au panneau d'administration</h2>
+    </div>
+    <div class="chapter-body">
+
+      <h3>Accès</h3>
+      <p>Le panneau d'administration est accessible à l'adresse :</p>
+      <div class="box box-tip">
+        <strong>🔗 URL du dashboard</strong>
+        <a href="https://saint-remeze-backend.onrender.com/admin.html" target="_blank">
+          saint-remeze-backend.onrender.com/admin.html
+        </a>
+      </div>
+
+      <h3>Identifiants</h3>
+      <table>
+        <tr><th>Champ</th><th>Valeur</th></tr>
+        <tr><td>Email</td><td><code>admin@saintremeze.fr</code></td></tr>
+        <tr><td>Mot de passe</td><td><code>admin123</code> (à modifier — voir chapitre 5)</td></tr>
+      </table>
+
+      <div class="box box-warn">
+        <strong>⚠️ Sécurité</strong>
+        Changez le mot de passe par défaut dès que possible. Voir le chapitre 5 pour la procédure.
+      </div>
+
+      <h3>Déconnexion</h3>
+      <p>Cliquez sur le bouton <strong>Déconnexion</strong> en haut à droite du dashboard. La session est stockée dans le navigateur — elle persiste jusqu'à déconnexion explicite ou fermeture du navigateur.</p>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- CHAPITRE 2 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="chapter" id="ch2">
+    <div class="chapter-header">
+      <div class="chapter-num">2</div>
+      <h2>Gérer les signalements</h2>
+    </div>
+    <div class="chapter-body">
+
+      <h3>Vue d'ensemble</h3>
+      <p>Le dashboard affiche en temps réel le nombre de signalements par statut, puis la liste complète avec les filtres disponibles.</p>
+
+      <h3>Filtres disponibles</h3>
+      <ul>
+        <li><strong>Recherche textuelle</strong> — filtre sur le titre, la description ou le nom du citoyen</li>
+        <li><strong>Statut</strong> — affiche uniquement les signalements d'un statut donné</li>
+        <li><strong>Du / Au</strong> — plage de dates sur la date de création</li>
+        <li><strong>Bouton ↺</strong> — réinitialise tous les filtres</li>
+      </ul>
+
+      <h3>Ouvrir un signalement</h3>
+      <p>Cliquez sur le bouton <strong>Détails</strong> d'une ligne. La fiche s'ouvre et le statut passe automatiquement de <span class="status-badge s-wait">⏳ En attente</span> à <span class="status-badge s-seen">👁️ Vue</span>. Le citoyen reçoit une notification email automatique.</p>
+
+      <h3>Modifier un signalement</h3>
+      <p>Dans la fiche ouverte, vous pouvez modifier :</p>
+      <ul>
+        <li><strong>Statut</strong> — choisir parmi : En attente, Vue, En cours, Terminée, Rejetée</li>
+        <li><strong>Assigné à</strong> — nom de l'agent ou du prestataire en charge</li>
+        <li><strong>Notes de la mairie</strong> — message interne ou explication visible côté citoyen</li>
+      </ul>
+      <p>Cliquez sur <strong>Enregistrer</strong> pour valider. Le citoyen reçoit un email automatique à chaque changement de statut.</p>
+
+      <h3>Les statuts et leur signification</h3>
+      <table>
+        <tr><th>Statut</th><th>Signification</th><th>Email citoyen</th></tr>
+        <tr><td><span class="status-badge s-wait">⏳ En attente</span></td><td>Signalement reçu, non encore examiné</td><td>Non</td></tr>
+        <tr><td><span class="status-badge s-seen">👁️ Vue</span></td><td>Signalement ouvert par l'admin</td><td>Oui</td></tr>
+        <tr><td><span class="status-badge s-wip">🔧 En cours</span></td><td>Traitement en cours</td><td>Oui</td></tr>
+        <tr><td><span class="status-badge s-done">✅ Terminée</span></td><td>Problème résolu</td><td>Oui</td></tr>
+        <tr><td><span class="status-badge s-reject">❌ Rejetée</span></td><td>Non traitable (hors compétence, doublon…)</td><td>Oui</td></tr>
+      </table>
+
+      <h3>Supprimer un signalement</h3>
+      <p>La suppression est possible uniquement pour les signalements <strong>archivés depuis plus d'un an</strong>. Pour les autres, utilisez le statut <span class="status-badge s-reject">❌ Rejetée</span>.</p>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- CHAPITRE 3 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="chapter" id="ch3">
+    <div class="chapter-header">
+      <div class="chapter-num">3</div>
+      <h2>Exports PDF &amp; CSV</h2>
+    </div>
+    <div class="chapter-body">
+
+      <h3>Lancer un export</h3>
+      <p>Les boutons <strong>📄 PDF</strong> et <strong>📊 CSV</strong> se trouvent en haut à droite du dashboard. L'export porte sur les données <strong>filtrées et affichées</strong> — activez les filtres avant d'exporter pour obtenir un rapport ciblé.</p>
+
+      <h3>Export PDF</h3>
+      <ul>
+        <li><strong>Page 1</strong> — titre du rapport, filtres actifs, période, graphique camembert (statuts), graphique barres (catégories)</li>
+        <li><strong>Pages suivantes</strong> — une page par signalement avec toutes les informations : citoyen, contact, description, localisation GPS cliquable, photos</li>
+      </ul>
+      <div class="box box-tip">
+        <strong>⏳ La génération peut prendre plusieurs secondes</strong>
+        Un indicateur animé apparaît en bas à droite pendant la création. Le bouton PDF est désactivé pendant ce temps.
+      </div>
+
+      <h3>Export CSV</h3>
+      <p>Le fichier CSV contient une ligne par signalement avec les colonnes : Date, Citoyen, Email, Téléphone, Catégorie, Titre, Statut, Assigné à, Description, Notes admin. Ouvrable directement dans Excel ou LibreOffice Calc.</p>
+
+      <h3>Filtrer avant d'exporter</h3>
+      <p>Pour exporter uniquement les signalements terminés du mois d'avril :</p>
+      <ol class="steps">
+        <li>Sélectionner <strong>Terminée</strong> dans le filtre statut</li>
+        <li>Saisir <strong>01/04/2026</strong> dans « Du » et <strong>30/04/2026</strong> dans « Au »</li>
+        <li>Cliquer sur <strong>📄 PDF</strong> ou <strong>📊 CSV</strong></li>
+      </ol>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- CHAPITRE 4 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="chapter" id="ch4">
+    <div class="chapter-header">
+      <div class="chapter-num">4</div>
+      <h2>Gestion des archives</h2>
+    </div>
+    <div class="chapter-body">
+
+      <h3>Archivage automatique</h3>
+      <p>Les signalements au statut <span class="status-badge s-done">✅ Terminée</span> ou <span class="status-badge s-reject">❌ Rejetée</span> sont archivés automatiquement <strong>1 an après leur création</strong>. Cette tâche s'exécute chaque nuit à 2h00.</p>
+
+      <h3>Archivage manuel</h3>
+      <p>Pour archiver un signalement manuellement, ouvrez sa fiche et cliquez sur <strong>Archiver</strong>. Il disparaît de la vue active et passe dans l'onglet <strong>Archives</strong>.</p>
+
+      <h3>Consulter les archives</h3>
+      <p>Cliquez sur l'onglet <strong>Archives</strong> dans le dashboard. Les filtres et exports fonctionnent de la même façon.</p>
+
+      <h3>Désarchiver</h3>
+      <p>Depuis l'onglet Archives, ouvrez la fiche et cliquez sur <strong>Désarchiver</strong> pour remettre le signalement en liste active.</p>
+
+      <h3>Suppression définitive</h3>
+      <p>La suppression n'est disponible que pour les signalements archivés depuis <strong>plus d'un an</strong>. Le bouton 🗑️ devient alors actif dans la fiche. Cette action est irréversible.</p>
+
+      <div class="box box-alert">
+        <strong>🚨 Suppression irréversible</strong>
+        Une confirmation est demandée. Les photos hébergées sur Cloudinary sont également supprimées définitivement.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- CHAPITRE 5 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="chapter" id="ch5">
+    <div class="chapter-header">
+      <div class="chapter-num">5</div>
+      <h2>Changer le mot de passe administrateur</h2>
+    </div>
+    <div class="chapter-body">
+
+      <p>Le mot de passe admin est stocké hashé en base MongoDB. La procédure utilise le script <code>createAdmin.js</code> exécuté localement depuis votre Mac.</p>
+
+      <div class="box box-warn">
+        <strong>⚠️ Prérequis</strong>
+        Node.js doit être installé sur votre Mac et le dossier du projet doit être accessible.
+      </div>
+
+      <h3>Étape 1 — Récupérer le MONGODB_URI</h3>
+      <ol class="steps">
+        <li>Connectez-vous sur <a href="https://render.com" target="_blank">render.com</a></li>
+        <li>Ouvrez votre service backend → onglet <strong>Environment</strong></li>
+        <li>Copiez la valeur de la variable <strong>MONGODB_URI</strong></li>
+      </ol>
+
+      <h3>Étape 2 — Créer un fichier .env local</h3>
+      <p>Dans le dossier <code>backend/</code> du projet, créez un fichier nommé <code>.env</code> avec ce contenu :</p>
+      <div class="code-block">
+        <span class="key">MONGODB_URI</span>=<span class="val">mongodb+srv://...  ← coller la valeur copiée</span>
+      </div>
+
+      <h3>Étape 3 — Modifier le nouveau mot de passe</h3>
+      <p>Ouvrez le fichier <code>backend/createAdmin.js</code> et modifiez la ligne :</p>
+      <div class="code-block">
+        <span class="key">const</span> ADMIN_EMAIL = <span class="val">'admin@saintremeze.fr'</span>;<br>
+        <span class="key">const</span> ADMIN_PASS  = <span class="val">'votre_nouveau_mot_de_passe'</span>; <span class="comment">← modifier ici</span>
+      </div>
+
+      <h3>Étape 4 — Lancer le script</h3>
+      <p>Ouvrez le Terminal et exécutez :</p>
+      <div class="code-block">
+        cd <span class="val">"/Volumes/DATA_PHOTOS/@CODAGE APPLI/saint-remeze-COMPLET-v7.2 PROD/backend"</span><br>
+        node createAdmin.js
+      </div>
+      <p>Résultat attendu :</p>
+      <div class="code-block">
+        <span class="val">✅ Connecté à MongoDB Atlas</span><br>
+        <span class="val">🔄 Admin mis à jour (mot de passe réinitialisé)</span><br>
+        &nbsp;&nbsp; Email    : admin@saintremeze.fr<br>
+        &nbsp;&nbsp; Password : votre_nouveau_mot_de_passe
+      </div>
+
+      <div class="box box-ok">
+        <strong>✅ Le mot de passe est immédiatement actif</strong>
+        Aucun redémarrage du serveur n'est nécessaire. Reconnectez-vous sur le dashboard avec le nouveau mot de passe.
+      </div>
+
+      <h3>Étape 5 — Nettoyage</h3>
+      <div class="box box-alert">
+        <strong>🚨 Important — Sécurité</strong>
+        Après l'opération, supprimez le fichier <code>.env</code> local (il contient le mot de passe MongoDB) et remettez <code>createAdmin.js</code> à sa valeur d'origine. Ne commitez jamais ces fichiers sur GitHub.
+      </div>
+      <ol class="steps">
+        <li>Supprimer le fichier <code>backend/.env</code></li>
+        <li>Remettre <code>ADMIN_PASS = 'admin123'</code> dans <code>createAdmin.js</code> (ou laisser vide)</li>
+        <li>Vérifier que <code>.env</code> est dans le fichier <code>.gitignore</code></li>
+      </ol>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- CHAPITRE 6 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="chapter" id="ch6">
+    <div class="chapter-header">
+      <div class="chapter-num">6</div>
+      <h2>Variables d'environnement (Render)</h2>
+    </div>
+    <div class="chapter-body">
+
+      <p>Ces variables sont définies sur <a href="https://render.com" target="_blank">render.com</a> → service backend → onglet <strong>Environment</strong>. Elles ne doivent jamais apparaître dans le code source.</p>
+
+      <table>
+        <tr><th>Variable</th><th>Description</th><th>Obligatoire</th></tr>
+        <tr>
+          <td><code>MONGODB_URI</code></td>
+          <td>URI de connexion MongoDB Atlas (inclut login/password)</td>
+          <td>✅ Oui</td>
+        </tr>
+        <tr>
+          <td><code>JWT_SECRET</code></td>
+          <td>Clé secrète pour signer les tokens JWT — chaîne aléatoire longue</td>
+          <td>✅ Oui</td>
+        </tr>
+        <tr>
+          <td><code>RESEND_API_KEY</code></td>
+          <td>Clé API Resend pour l'envoi d'emails</td>
+          <td>✅ Oui (pour les emails)</td>
+        </tr>
+        <tr>
+          <td><code>EMAIL_FROM</code></td>
+          <td>Adresse expéditeur des emails : <code>Saint-Remèze &lt;no-reply@saintremeze.fr&gt;</code></td>
+          <td>Recommandé</td>
+        </tr>
+        <tr>
+          <td><code>FRONTEND_URL</code></td>
+          <td>URL du frontend Vercel : <code>https://saint-remeze-frontend.vercel.app</code></td>
+          <td>Recommandé</td>
+        </tr>
+        <tr>
+          <td><code>CLOUDINARY_CLOUD_NAME</code></td>
+          <td>Nom du compte Cloudinary pour l'hébergement des photos</td>
+          <td>✅ Oui (pour les photos)</td>
+        </tr>
+        <tr>
+          <td><code>CLOUDINARY_API_KEY</code></td>
+          <td>Clé API Cloudinary</td>
+          <td>✅ Oui (pour les photos)</td>
+        </tr>
+        <tr>
+          <td><code>CLOUDINARY_API_SECRET</code></td>
+          <td>Secret API Cloudinary</td>
+          <td>✅ Oui (pour les photos)</td>
+        </tr>
+      </table>
+
+      <div class="box box-tip">
+        <strong>💡 Générer un JWT_SECRET sécurisé</strong>
+        Dans le Terminal de votre Mac, exécutez :<br><br>
+        <code>node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"</code><br><br>
+        Copiez la valeur générée (128 caractères hexadécimaux) et collez-la dans Render.
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
+<footer style="text-align:center;padding:24px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);">
+  &copy; 2026 Commune de Saint-Remèze — Manuel Administrateur v7.2 —
+  <a href="/index.html" style="color:var(--gold);text-decoration:none;">Retour à l'accueil</a> —
+  <a href="/manuel.html" style="color:var(--gold);text-decoration:none;">Manuel citoyen</a>
+</footer>
+
+</body>
+</html>
