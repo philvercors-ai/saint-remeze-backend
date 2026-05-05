@@ -109,21 +109,19 @@ router.delete('/admin/:id', adminAuth, async (req, res) => {
 });
 
 // GET /
-router.get('/', optionalAuth, async (req, res) => {
+router.get('/', auth, async (req, res) => {
   try {
     console.log('📋 GET /api/remarks');
 
-    // Filtrer par utilisateur connecté si authentifié
-    const query = { archived: false };
-    if (req.user && req.user.userId) {
-      query.user = req.user.userId;
-      console.log('👤 Filtrage pour user:', req.user.userId);
+    if (!req.user?.userId) {
+      return res.status(401).json({ success: false, message: 'Utilisateur non identifié' });
     }
 
-    const remarks = await Remark.find(query)
+    console.log('👤 Filtrage pour user:', req.user.userId);
+    const remarks = await Remark.find({ archived: false, user: req.user.userId })
       .populate('user', 'name email phone')
       .sort({ createdAt: -1 });
-    
+
     res.json(remarks);
   } catch (error) {
     console.error('❌ Erreur GET remarks:', error);
