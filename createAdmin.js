@@ -3,7 +3,7 @@ require('dotenv').config();
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
-const ADMIN_EMAIL = 'admin@saint-remeze.fr';
+const ADMIN_EMAIL = 'admin@saintremeze.fr';
 const ADMIN_PASS  = 'admin123';
 const ADMIN_NAME  = 'Administrateur';
 

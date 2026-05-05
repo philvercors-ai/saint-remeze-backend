@@ -8,7 +8,7 @@ cp .env.example .env
 npm start
 ```
 
-Admin: admin@saint-remeze.fr / admin123
+Admin: admin@saintremeze.fr / admin123
 Dashboard: http://localhost:10000/admin
 
 ## Configuration de l'envoi d'emails (Resend)
