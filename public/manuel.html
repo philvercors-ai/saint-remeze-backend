@@ -33,7 +33,7 @@
     /* ── HEADER ── */
     header {
       background: var(--navy);
-      padding: 18px 32px;
+      padding: 18px 24px;
       display: flex;
       align-items: center;
       gap: 14px;
@@ -42,10 +42,10 @@
       z-index: 100;
       box-shadow: 0 2px 12px rgba(0,0,0,.25);
     }
-    header img { height: 42px; width: 42px; border-radius: 6px; }
+    header img { height: 42px; width: 42px; border-radius: 6px; flex-shrink: 0; }
     .header-text h1 {
       font-family: 'Playfair Display', serif;
-      font-size: 19px; color: #fff; font-weight: 700;
+      font-size: 18px; color: #fff; font-weight: 700;
     }
     .header-text span {
       font-size: 11px; color: var(--gold); font-weight: 500;
@@ -57,13 +57,13 @@
       background: linear-gradient(135deg, var(--navy) 0%, #0f2a44 100%);
       color: #fff;
       text-align: center;
-      padding: 56px 24px 48px;
+      padding: 48px 20px 40px;
     }
     .hero h2 {
       font-family: 'Playfair Display', serif;
-      font-size: 32px; margin-bottom: 14px;
+      font-size: 28px; margin-bottom: 12px;
     }
-    .hero p { font-size: 16px; color: rgba(255,255,255,.75); max-width: 540px; margin: 0 auto 28px; }
+    .hero p { font-size: 15px; color: rgba(255,255,255,.75); max-width: 520px; margin: 0 auto 24px; }
     .hero-version {
       display: inline-block;
       background: rgba(201,168,76,.2);
@@ -74,20 +74,18 @@
       letter-spacing: .05em;
     }
 
-    /* ── NAV CHAPITRES ── */
-    .toc {
-      max-width: 820px; margin: 40px auto; padding: 0 24px;
-    }
+    /* ── SOMMAIRE ── */
+    .toc { max-width: 820px; margin: 36px auto; padding: 0 16px; }
     .toc-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 16px;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 14px;
     }
     .toc-card {
       background: var(--white);
       border: 1px solid var(--border);
       border-radius: 12px;
-      padding: 20px 16px;
+      padding: 18px 14px;
       text-align: center;
       text-decoration: none;
       color: var(--navy);
@@ -106,69 +104,103 @@
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
       font-size: 15px; font-weight: 700;
+      flex-shrink: 0;
     }
 
     /* ── LAYOUT ── */
-    .content { max-width: 820px; margin: 0 auto; padding: 0 24px 80px; }
+    .content { max-width: 820px; margin: 0 auto; padding: 0 16px 80px; }
 
     /* ── CHAPITRES ── */
     .chapter {
       background: var(--white);
       border-radius: 16px;
       border: 1px solid var(--border);
-      margin-bottom: 40px;
+      margin-bottom: 36px;
       overflow: hidden;
       box-shadow: 0 2px 12px rgba(26,58,90,.07);
     }
     .chapter-header {
       background: var(--navy);
-      padding: 24px 32px;
+      padding: 20px 24px;
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
     }
     .chapter-num {
       background: var(--gold);
       color: var(--navy);
-      width: 40px; height: 40px;
+      width: 38px; height: 38px;
       border-radius: 50%;
       display: flex; align-items: center; justify-content: center;
-      font-size: 18px; font-weight: 700;
+      font-size: 17px; font-weight: 700;
       flex-shrink: 0;
     }
     .chapter-header h2 {
       font-family: 'Playfair Display', serif;
-      font-size: 22px; color: #fff;
+      font-size: 20px; color: #fff;
+      line-height: 1.3;
     }
-    .chapter-body { padding: 32px; }
+    .chapter-body { padding: 28px 24px; }
 
-    /* ── ÉLÉMENTS CONTENU ── */
+    /* ── TITRES ── */
     h3 {
       font-family: 'Playfair Display', serif;
-      font-size: 17px; color: var(--navy);
-      margin: 28px 0 10px;
-      padding-bottom: 6px;
+      font-size: 16px; color: var(--navy);
+      margin: 26px 0 10px;
+      padding-bottom: 5px;
       border-bottom: 2px solid var(--gold);
-      display: inline-block;
+      display: block;
+      width: fit-content;
+      max-width: 100%;
     }
     h3:first-child { margin-top: 0; }
 
     p { margin-bottom: 14px; }
 
+    /* ── LISTES — alignement correct sur mobile ── */
     ul, ol {
-      padding-left: 24px;
+      padding-left: 0;
       margin-bottom: 16px;
+      list-style: none;
     }
-    li { margin-bottom: 6px; }
+    ul li, ol li {
+      position: relative;
+      padding-left: 1.6em;
+      margin-bottom: 8px;
+      word-break: break-word;
+    }
+    ul li::before {
+      content: '•';
+      position: absolute;
+      left: 0.3em;
+      color: var(--navy);
+      font-weight: 700;
+    }
+    ol {
+      counter-reset: list-counter;
+    }
+    ol li {
+      counter-increment: list-counter;
+    }
+    ol li::before {
+      content: counter(list-counter) '.';
+      position: absolute;
+      left: 0;
+      font-weight: 600;
+      color: var(--navy);
+      min-width: 1.4em;
+    }
 
-    /* Étapes numérotées */
-    .steps { list-style: none; padding: 0; counter-reset: step; }
+    /* Étapes numérotées illustrées */
+    .steps { list-style: none; padding: 0; counter-reset: step; margin-bottom: 16px; }
     .steps li {
       counter-increment: step;
       display: flex;
-      gap: 14px;
+      gap: 12px;
       align-items: flex-start;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+      padding-left: 0;
+      word-break: break-word;
     }
     .steps li::before {
       content: counter(step);
@@ -180,46 +212,72 @@
       font-size: 13px; font-weight: 700;
       flex-shrink: 0;
       margin-top: 2px;
+      position: static;
     }
+    .steps li > span,
+    .steps li > div { flex: 1; }
 
-    /* Badges de statut */
+    /* ── BADGES STATUT ── */
     .badge {
-      display: inline-flex; align-items: center; gap: 6px;
-      padding: 4px 12px; border-radius: 99px;
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 10px; border-radius: 99px;
       font-size: 13px; font-weight: 600;
+      white-space: nowrap;
     }
-    .badge-wait    { background: #fef3c7; color: #92400e; }
-    .badge-seen    { background: #ede9fe; color: #5b21b6; }
-    .badge-wip     { background: #dbeafe; color: #1e40af; }
-    .badge-done    { background: #d1fae5; color: #065f46; }
-    .badge-reject  { background: #fee2e2; color: #991b1b; }
+    .badge-wait   { background: #fef3c7; color: #92400e; }
+    .badge-seen   { background: #ede9fe; color: #5b21b6; }
+    .badge-wip    { background: #dbeafe; color: #1e40af; }
+    .badge-done   { background: #d1fae5; color: #065f46; }
+    .badge-reject { background: #fee2e2; color: #991b1b; }
 
-    .status-table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; }
+    /* ── TABLEAU (responsive) ── */
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 14px 0 22px; }
+    .status-table { width: 100%; border-collapse: collapse; min-width: 460px; font-size: 15px; }
     .status-table th {
       background: #f1f5f9; text-align: left;
-      padding: 10px 14px; font-size: 13px;
+      padding: 10px 12px; font-size: 13px;
       color: var(--muted); font-weight: 600;
       border-bottom: 1px solid var(--border);
     }
     .status-table td {
-      padding: 12px 14px; border-bottom: 1px solid #f1f5f9;
-      vertical-align: top; font-size: 15px;
+      padding: 11px 12px; border-bottom: 1px solid #f1f5f9;
+      vertical-align: top;
     }
     .status-table tr:last-child td { border-bottom: none; }
 
-    /* Boîtes info / astuce */
+    /* ── BOÎTES ── */
     .box {
       border-radius: 10px;
-      padding: 16px 20px;
-      margin: 20px 0;
+      padding: 14px 18px;
+      margin: 18px 0;
       font-size: 15px;
+      word-break: break-word;
     }
     .box-tip  { background: #eff6ff; border-left: 4px solid var(--blue); }
     .box-warn { background: #fffbeb; border-left: 4px solid #f59e0b; }
     .box-ok   { background: #f0fdf4; border-left: 4px solid #16a34a; }
-    .box strong { display: block; margin-bottom: 4px; }
+    .box strong { display: block; margin-bottom: 6px; }
 
-    /* Catégories */
+    /* ── AUTORISATIONS ── */
+    .perm-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin: 16px 0;
+    }
+    .perm-card {
+      background: #f8fafc;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .perm-card h4 {
+      font-size: 14px; font-weight: 700; color: var(--navy);
+      margin-bottom: 8px; display: flex; align-items: center; gap: 8px;
+    }
+    .perm-card p { font-size: 14px; margin: 0; color: var(--muted); }
+
+    /* ── CATÉGORIES ── */
     .cat-grid {
       display: flex; flex-wrap: wrap; gap: 8px;
       margin: 12px 0 20px;
@@ -232,44 +290,21 @@
       font-size: 13px; color: var(--navy); font-weight: 500;
     }
 
-    /* Écrans mobiles */
-    .mockup {
-      background: #1e293b;
-      border-radius: 12px;
-      padding: 16px;
-      max-width: 320px;
-      margin: 20px auto;
-      color: #f8fafc;
-      font-size: 13px;
-    }
-    .mockup-bar {
-      background: var(--navy); border-radius: 8px;
-      padding: 10px 14px; margin-bottom: 10px;
-      display: flex; align-items: center; gap: 8px;
-    }
-    .mockup-row {
-      background: #334155; border-radius: 8px;
-      padding: 10px 14px; margin-bottom: 8px;
-      display: flex; justify-content: space-between;
-    }
-
-    /* Installation PWA */
+    /* ── INSTALLATION PWA ── */
     .pwa-grid {
       display: grid; grid-template-columns: 1fr 1fr;
-      gap: 16px; margin: 16px 0;
+      gap: 14px; margin: 14px 0;
     }
     .pwa-card {
       background: #f8fafc; border: 1px solid var(--border);
-      border-radius: 10px; padding: 18px;
+      border-radius: 10px; padding: 16px;
     }
-    .pwa-card h4 { font-size: 15px; color: var(--navy); margin-bottom: 10px; font-weight: 700; }
-    .pwa-card ol { font-size: 14px; padding-left: 18px; margin: 0; }
-    .pwa-card li { margin-bottom: 5px; }
+    .pwa-card h4 { font-size: 14px; color: var(--navy); margin-bottom: 10px; font-weight: 700; }
 
     /* ── FOOTER ── */
     footer {
       text-align: center;
-      padding: 24px;
+      padding: 24px 16px;
       font-size: 12px;
       color: var(--muted);
       border-top: 1px solid var(--border);
@@ -283,8 +318,7 @@
       padding: 10px 22px; border-radius: 8px;
       font-size: 14px; font-weight: 700;
       border: none; cursor: pointer;
-      margin-top: 16px;
-      text-decoration: none;
+      margin-top: 16px; text-decoration: none;
     }
     .print-btn:hover { background: #b8923e; }
 
@@ -296,10 +330,17 @@
     }
 
     @media (max-width: 600px) {
-      .hero h2 { font-size: 24px; }
-      .chapter-body { padding: 20px; }
+      .hero h2 { font-size: 22px; }
+      .chapter-body { padding: 20px 16px; }
+      .chapter-header { padding: 16px 18px; }
+      .chapter-header h2 { font-size: 17px; }
       .pwa-grid { grid-template-columns: 1fr; }
-      .chapter-header { padding: 18px 20px; }
+      .perm-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 400px) {
+      body { font-size: 15px; }
+      .chapter-body { padding: 16px 14px; }
     }
   </style>
 </head>
@@ -365,12 +406,12 @@
         <h3>Créer son compte</h3>
         <p>La création d'un compte est obligatoire pour déposer un signalement. À votre première visite, vous arriverez directement sur la page d'inscription.</p>
         <ol class="steps">
-          <li>Saisissez votre <strong>nom complet</strong></li>
-          <li>Saisissez votre <strong>adresse email</strong> (elle servira à recevoir les notifications de la mairie)</li>
-          <li>Saisissez votre <strong>numéro de téléphone</strong> (facultatif)</li>
-          <li>Choisissez un <strong>mot de passe</strong> d'au moins 6 caractères</li>
-          <li>Cochez la case <strong>consentement RGPD</strong></li>
-          <li>Cliquez sur <strong>S'inscrire</strong></li>
+          <li><span>Saisissez votre <strong>nom complet</strong></span></li>
+          <li><span>Saisissez votre <strong>adresse email</strong> — elle servira à recevoir les notifications de la mairie</span></li>
+          <li><span>Saisissez votre <strong>numéro de téléphone</strong> (facultatif)</span></li>
+          <li><span>Choisissez un <strong>mot de passe</strong> d'au moins 6 caractères</span></li>
+          <li><span>Cochez la case <strong>consentement RGPD</strong></span></li>
+          <li><span>Appuyez sur <strong>S'inscrire</strong></span></li>
         </ol>
         <div class="box box-ok">
           <strong>✅ Vous êtes automatiquement connecté après l'inscription.</strong>
@@ -378,14 +419,14 @@
         </div>
 
         <h3>Se connecter (visites suivantes)</h3>
-        <p>Si vous avez déjà un compte, cliquez sur <strong>« Déjà un compte ? Se connecter »</strong> depuis la page d'inscription, puis saisissez votre email et mot de passe.</p>
+        <p>Si vous avez déjà un compte, appuyez sur <strong>« Déjà un compte ? Se connecter »</strong> depuis la page d'inscription, puis saisissez votre email et mot de passe.</p>
 
         <h3>Mot de passe oublié</h3>
         <ol class="steps">
-          <li>Sur la page de connexion, cliquez sur <strong>« Mot de passe oublié ? »</strong></li>
-          <li>Saisissez votre adresse email</li>
-          <li>Consultez votre boîte mail : vous recevrez un lien de réinitialisation valable <strong>1 heure</strong></li>
-          <li>Cliquez sur le lien et choisissez un nouveau mot de passe</li>
+          <li><span>Sur la page de connexion, appuyez sur <strong>« Mot de passe oublié ? »</strong></span></li>
+          <li><span>Saisissez votre adresse email</span></li>
+          <li><span>Consultez votre boîte mail : vous recevrez un lien de réinitialisation valable <strong>1 heure</strong></span></li>
+          <li><span>Appuyez sur le lien et choisissez un nouveau mot de passe</span></li>
         </ol>
 
         <h3>Installer l'application sur votre téléphone (recommandé)</h3>
@@ -394,20 +435,20 @@
         <div class="pwa-grid">
           <div class="pwa-card">
             <h4>🍎 Sur iPhone / iPad</h4>
-            <ol>
-              <li>Ouvrez l'app dans <strong>Safari</strong></li>
-              <li>Appuyez sur l'icône <strong>Partager</strong> (carré avec flèche)</li>
-              <li>Faites défiler et appuyez sur <strong>« Sur l'écran d'accueil »</strong></li>
-              <li>Appuyez sur <strong>Ajouter</strong></li>
+            <ol class="steps" style="margin:0;">
+              <li><span>Ouvrez l'app dans <strong>Safari</strong></span></li>
+              <li><span>Appuyez sur l'icône <strong>Partager</strong> (carré avec flèche ↑)</span></li>
+              <li><span>Faites défiler et appuyez sur <strong>« Sur l'écran d'accueil »</strong></span></li>
+              <li><span>Appuyez sur <strong>Ajouter</strong></span></li>
             </ol>
           </div>
           <div class="pwa-card">
             <h4>🤖 Sur Android</h4>
-            <ol>
-              <li>Ouvrez l'app dans <strong>Chrome</strong></li>
-              <li>Appuyez sur le menu <strong>⋮</strong> (3 points)</li>
-              <li>Appuyez sur <strong>« Ajouter à l'écran d'accueil »</strong></li>
-              <li>Appuyez sur <strong>Installer</strong></li>
+            <ol class="steps" style="margin:0;">
+              <li><span>Ouvrez l'app dans <strong>Chrome</strong></span></li>
+              <li><span>Appuyez sur le menu <strong>⋮</strong> (3 points en haut à droite)</span></li>
+              <li><span>Appuyez sur <strong>« Ajouter à l'écran d'accueil »</strong></span></li>
+              <li><span>Appuyez sur <strong>Installer</strong></span></li>
             </ol>
           </div>
         </div>
@@ -415,6 +456,37 @@
         <div class="box box-tip">
           <strong>💡 Astuce</strong>
           Une fois installée, l'icône de l'application apparaît sur votre écran d'accueil comme n'importe quelle autre application.
+        </div>
+
+        <h3>Autorisations demandées par l'application</h3>
+        <p>Lors de votre première utilisation, l'application peut vous demander plusieurs autorisations. Voici leur utilité :</p>
+
+        <div class="perm-grid">
+          <div class="perm-card">
+            <h4>📷 Appareil photo</h4>
+            <p>Pour prendre une photo directement depuis l'application et la joindre à votre signalement. <strong>Autoriser</strong> est recommandé — vous pouvez aussi choisir une photo depuis votre galerie.</p>
+          </div>
+          <div class="perm-card">
+            <h4>🖼️ Galerie / Photos</h4>
+            <p>Pour sélectionner une photo existante sur votre téléphone et la joindre à votre signalement. Requis si vous n'utilisez pas l'appareil photo directement.</p>
+          </div>
+          <div class="perm-card">
+            <h4>📍 Localisation (GPS)</h4>
+            <p>Pour positionner automatiquement votre signalement sur la carte. Cela aide la mairie à localiser précisément le problème. Si vous refusez, décrivez le lieu dans la description.</p>
+          </div>
+          <div class="perm-card">
+            <h4>🔔 Notifications</h4>
+            <p>Pour recevoir une alerte sur votre écran dès qu'un statut change. <strong>Optionnel</strong> — vous recevrez de toute façon les notifications par email.</p>
+          </div>
+        </div>
+
+        <div class="box box-warn">
+          <strong>⚠️ Autorisation refusée par erreur ?</strong>
+          Vous pouvez modifier les autorisations à tout moment dans les réglages de votre téléphone :
+          <ul style="margin-top:8px;">
+            <li><strong>iPhone</strong> : Réglages → Confidentialité et sécurité → choisir l'autorisation → activer pour Saint-Remèze</li>
+            <li><strong>Android</strong> : Paramètres → Applications → Saint-Remèze → Autorisations → activer</li>
+          </ul>
         </div>
 
       </div>
@@ -435,13 +507,13 @@
 
         <h3>Déposer un signalement</h3>
         <ol class="steps">
-          <li>Depuis la page d'accueil, appuyez sur le bouton <strong>➕ Nouvelle remarque</strong></li>
-          <li>Choisissez une <strong>catégorie</strong> dans la liste</li>
-          <li>Saisissez un <strong>titre court et descriptif</strong> (ex. : « Nid-de-poule rue des Lilas »)</li>
-          <li>Rédigez une <strong>description</strong> plus détaillée si nécessaire (lieu précis, circonstances, etc.)</li>
-          <li>Ajoutez <strong>une ou plusieurs photos</strong> (facultatif mais recommandé)</li>
-          <li>Activez la <strong>géolocalisation</strong> pour indiquer précisément le lieu</li>
-          <li>Appuyez sur <strong>Envoyer</strong></li>
+          <li><span>Depuis la page d'accueil, appuyez sur le bouton <strong>➕ Nouvelle remarque</strong></span></li>
+          <li><span>Choisissez une <strong>catégorie</strong> dans la liste</span></li>
+          <li><span>Saisissez un <strong>titre court et descriptif</strong> (ex. : « Nid-de-poule rue des Lilas »)</span></li>
+          <li><span>Rédigez une <strong>description</strong> plus détaillée si nécessaire (lieu précis, circonstances…)</span></li>
+          <li><span>Ajoutez <strong>une ou plusieurs photos</strong> (facultatif mais recommandé)</span></li>
+          <li><span>Activez la <strong>géolocalisation</strong> pour indiquer précisément le lieu</span></li>
+          <li><span>Appuyez sur <strong>Envoyer</strong></span></li>
         </ol>
 
         <h3>Catégories disponibles</h3>
@@ -476,10 +548,10 @@
         <h3>Modifier un signalement</h3>
         <p>Tant que votre signalement est au statut <span class="badge badge-wait">⏳ En attente</span> ou <span class="badge badge-seen">👁️ Vue</span>, vous pouvez le corriger :</p>
         <ol class="steps">
-          <li>Ouvrez le signalement depuis votre liste</li>
-          <li>Appuyez sur le bouton <strong>✏️ Modifier</strong> situé sur la ligne de statut</li>
-          <li>Modifiez le titre, la catégorie ou la description</li>
-          <li>Appuyez sur <strong>Enregistrer</strong></li>
+          <li><span>Ouvrez le signalement depuis votre liste</span></li>
+          <li><span>Appuyez sur le bouton <strong>✏️ Modifier</strong> situé sur la ligne de statut</span></li>
+          <li><span>Modifiez le titre, la catégorie ou la description</span></li>
+          <li><span>Appuyez sur <strong>Enregistrer</strong></span></li>
         </ol>
 
         <div class="box box-warn">
@@ -503,42 +575,44 @@
         <h3>Les statuts de votre signalement</h3>
         <p>Chaque signalement passe par plusieurs étapes identifiées par un statut coloré. Vous êtes informé par email à chaque changement.</p>
 
-        <table class="status-table">
-          <thead>
-            <tr>
-              <th>Statut</th>
-              <th>Signification</th>
-              <th>Délai indicatif</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="badge badge-wait">⏳ En attente</span></td>
-              <td>Votre signalement a bien été reçu et attend d'être examiné par la mairie.</td>
-              <td>Sous 5 jours ouvrés</td>
-            </tr>
-            <tr>
-              <td><span class="badge badge-seen">👁️ Vue</span></td>
-              <td>La mairie a pris connaissance de votre signalement et l'a enregistré. Une décision va être prise.</td>
-              <td>Variable</td>
-            </tr>
-            <tr>
-              <td><span class="badge badge-wip">🔧 En cours</span></td>
-              <td>Un agent ou une entreprise est en charge du traitement. Le problème est en cours de résolution.</td>
-              <td>Selon la nature du problème</td>
-            </tr>
-            <tr>
-              <td><span class="badge badge-done">✅ Terminée</span></td>
-              <td>Le problème a été traité et résolu. Le signalement est clôturé.</td>
-              <td>—</td>
-            </tr>
-            <tr>
-              <td><span class="badge badge-reject">❌ Rejetée</span></td>
-              <td>Le signalement ne peut pas être traité (hors compétence de la commune, doublon, etc.). Un commentaire explicatif peut être ajouté par la mairie et vous sera transmis par email.</td>
-              <td>—</td>
-            </tr>
-          </tbody>
-        </table>
+        <div class="table-wrap">
+          <table class="status-table">
+            <thead>
+              <tr>
+                <th>Statut</th>
+                <th>Signification</th>
+                <th>Délai indicatif</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><span class="badge badge-wait">⏳ En attente</span></td>
+                <td>Votre signalement a bien été reçu et attend d'être examiné par la mairie.</td>
+                <td>Sous 5 jours ouvrés</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-seen">👁️ Vue</span></td>
+                <td>La mairie a pris connaissance de votre signalement. Une décision va être prise.</td>
+                <td>Variable</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-wip">🔧 En cours</span></td>
+                <td>Un agent ou une entreprise est en charge du traitement. Le problème est en cours de résolution.</td>
+                <td>Selon la nature du problème</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-done">✅ Terminée</span></td>
+                <td>Le problème a été traité et résolu. Le signalement est clôturé.</td>
+                <td>—</td>
+              </tr>
+              <tr>
+                <td><span class="badge badge-reject">❌ Rejetée</span></td>
+                <td>Le signalement ne peut pas être traité (hors compétence de la commune, doublon…). Un commentaire explicatif peut être ajouté par la mairie et vous sera transmis par email.</td>
+                <td>—</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
         <h3>Délais selon la nature du problème</h3>
         <ul>
@@ -558,7 +632,7 @@
 
         <div class="box box-warn">
           <strong>⚠️ Ce que la mairie ne peut pas traiter</strong>
-          Certaines compétences relèvent du Département, de la Région ou d'autres organismes (routes nationales, réseaux électriques ENEDIS, etc.). Dans ce cas, votre signalement sera rejeté avec une explication, et vous serez orienté vers le bon interlocuteur.
+          Certaines compétences relèvent du Département, de la Région ou d'autres organismes (routes nationales, réseaux électriques ENEDIS…). Dans ce cas, votre signalement sera rejeté avec une explication, et vous serez orienté vers le bon interlocuteur.
         </div>
 
       </div>
@@ -595,13 +669,13 @@
         <h3>Les notifications dans l'application</h3>
         <p>La cloche 🔔 en haut à droite de l'écran affiche le nombre de notifications non lues. Chaque changement de statut génère une notification.</p>
         <ol class="steps">
-          <li>Appuyez sur la cloche 🔔 pour ouvrir la liste des notifications</li>
-          <li>Chaque notification indique le signalement concerné et le nouveau statut</li>
-          <li>Appuyez sur une notification pour accéder directement au signalement</li>
+          <li><span>Appuyez sur la cloche 🔔 pour ouvrir la liste des notifications</span></li>
+          <li><span>Chaque notification indique le signalement concerné et le nouveau statut</span></li>
+          <li><span>Appuyez sur une notification pour accéder directement au signalement</span></li>
         </ol>
 
         <h3>Les notifications par email</h3>
-        <p>En complément des notifications dans l'application, vous recevez un email automatique à chaque changement de statut de vos signalements. L'email contient :</p>
+        <p>En complément des notifications dans l'application, vous recevez un email automatique à chaque changement de statut. L'email contient :</p>
         <ul>
           <li>Le titre du signalement</li>
           <li>Le nouveau statut (avec code couleur)</li>
