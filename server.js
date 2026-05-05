@@ -8,6 +8,9 @@ require('dotenv').config();
 
 const app = express();
 
+// Nécessaire pour que le rate limiter lise la vraie IP derrière le proxy Render
+app.set('trust proxy', 1);
+
 // ── SÉCURITÉ : En-têtes HTTP ──────────────────────────────────────────────────
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' }, // Cloudinary images
