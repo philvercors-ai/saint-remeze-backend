@@ -11,6 +11,53 @@ npm start
 Admin: admin@saint-remeze.fr / admin123
 Dashboard: http://localhost:10000/admin
 
+## Configuration de l'envoi d'emails (Resend)
+
+La réinitialisation de mot de passe utilise le service **Resend**. Pour que les emails partent vers n'importe quel citoyen (et pas seulement le propriétaire du compte Resend), il faut vérifier le domaine `saintremeze.fr`.
+
+### Prérequis déjà en place
+- `RESEND_API_KEY` : déjà définie sur Render (ne pas modifier)
+
+### Étapes pour activer l'envoi depuis @saintremeze.fr
+
+**1. Vérifier le domaine dans Resend**
+- Se connecter sur [resend.com](https://resend.com)
+- Menu **Domains** → **Add Domain** → saisir `saintremeze.fr`
+- Resend affiche 3 enregistrements DNS à créer
+
+**2. Ajouter les enregistrements DNS chez l'hébergeur du domaine**
+
+| Type | Nom | Valeur |
+|------|-----|--------|
+| `TXT` | `resend._domainkey.saintremeze.fr` | clé DKIM fournie par Resend |
+| `MX`  | `send.saintremeze.fr` | `feedback-smtp.us-east-1.amazonses.com` |
+| `TXT` | `send.saintremeze.fr` | `v=spf1 include:amazonses.com ~all` |
+
+> Copier les valeurs exactes depuis l'interface Resend — elles peuvent différer légèrement.
+
+**3. Attendre la vérification du domaine**
+- Resend vérifie automatiquement (quelques minutes à 48h selon le TTL DNS)
+- Le statut passe à **Verified ✅** dans l'interface Resend
+
+**4. Mettre à jour la variable EMAIL_FROM sur Render**
+- Sur [render.com](https://render.com) → service backend → **Environment**
+- Ajouter ou modifier :
+
+| Variable | Valeur |
+|----------|--------|
+| `EMAIL_FROM` | `Saint-Remèze <no-reply@saintremeze.fr>` |
+
+Render redémarre automatiquement le service. Aucune modification de code n'est nécessaire.
+
+### Pourquoi ça ne fonctionne pas sans cette configuration
+`onboarding@resend.dev` (adresse par défaut) ne peut envoyer qu'à l'adresse du propriétaire du compte Resend. La vérification du domaine lève cette restriction.
+
+### Différence entre les deux clés
+- **`resend._domainkey`** : enregistrement DNS public (prouve l'identité du domaine auprès des boîtes mail des destinataires)
+- **`RESEND_API_KEY`** : clé secrète privée (authentifie le backend auprès de l'API Resend pour ordonner l'envoi)
+
+---
+
 ## Historique des versions
 
 ### v7.2.11
