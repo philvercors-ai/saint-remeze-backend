@@ -196,7 +196,8 @@
     <a class="toc-card" href="#ch3"><div class="toc-num">3</div>Exports PDF &amp; CSV</a>
     <a class="toc-card" href="#ch4"><div class="toc-num">4</div>Archives</a>
     <a class="toc-card" href="#ch5"><div class="toc-num">5</div>Mot de passe admin</a>
-    <a class="toc-card" href="#ch6"><div class="toc-num">6</div>Variables d'environnement</a>
+    <a class="toc-card" href="#ch6"><div class="toc-num">6</div>Emails &amp; Resend</a>
+    <a class="toc-card" href="#ch7"><div class="toc-num">7</div>Variables d'environnement</a>
   </div>
 </div>
 
@@ -434,6 +435,121 @@
   <div class="chapter" id="ch6">
     <div class="chapter-header">
       <div class="chapter-num">6</div>
+      <h2>Gestion des emails — Resend &amp; @saintremeze.fr</h2>
+    </div>
+    <div class="chapter-body">
+
+      <h3>Rôle du service d'email</h3>
+      <p>L'application utilise <strong>Resend</strong> pour envoyer deux types d'emails automatiques :</p>
+      <table>
+        <tr><th>Email</th><th>Déclencheur</th><th>Destinataire</th></tr>
+        <tr>
+          <td>Notification de changement de statut</td>
+          <td>Chaque fois que l'admin modifie le statut d'un signalement</td>
+          <td>Le citoyen auteur du signalement</td>
+        </tr>
+        <tr>
+          <td>Réinitialisation de mot de passe</td>
+          <td>Clic sur « Mot de passe oublié »</td>
+          <td>Le citoyen qui demande la réinitialisation</td>
+        </tr>
+      </table>
+
+      <h3>Les deux clés à ne pas confondre</h3>
+      <table>
+        <tr><th>Clé</th><th>Nature</th><th>Rôle</th></tr>
+        <tr>
+          <td><code>RESEND_API_KEY</code></td>
+          <td>Clé privée secrète<br><em>(commence par <code>re_</code>)</em></td>
+          <td>Authentifie le backend auprès de l'API Resend pour ordonner l'envoi. Stockée dans les variables d'environnement Render — ne jamais la partager ni la commiter dans GitHub.</td>
+        </tr>
+        <tr>
+          <td><code>resend._domainkey.saintremeze.fr</code></td>
+          <td>Enregistrement DNS public (DKIM)</td>
+          <td>Prouve l'identité du domaine <code>saintremeze.fr</code> auprès des boîtes mail des destinataires (Gmail, Orange, etc.). Créé une seule fois chez l'hébergeur DNS.</td>
+        </tr>
+      </table>
+
+      <div class="box box-tip">
+        <strong>💡 En résumé</strong>
+        La <code>RESEND_API_KEY</code> parle à Resend (<em>« je suis autorisé à envoyer »</em>). Le DKIM parle aux boîtes mail des destinataires (<em>« cet email vient bien de saintremeze.fr »</em>). Les deux sont nécessaires pour que les emails partent correctement et n'atterrissent pas dans les spams.
+      </div>
+
+      <h3>Pourquoi les emails partent en @resend.dev par défaut</h3>
+      <p>Sans vérification du domaine, Resend impose l'adresse expéditeur <code>onboarding@resend.dev</code>. Dans ce mode, les emails <strong>ne partent qu'à l'adresse du propriétaire du compte Resend</strong> — aucun citoyen ne les reçoit. La vérification du domaine <code>saintremeze.fr</code> lève cette restriction et permet d'envoyer depuis <code>no-reply@saintremeze.fr</code> vers n'importe quel destinataire.</p>
+
+      <h3>Vérifier le domaine saintremeze.fr dans Resend</h3>
+      <p>Cette opération est à faire une seule fois. Elle nécessite un accès à la gestion DNS du domaine <code>saintremeze.fr</code> chez votre hébergeur.</p>
+
+      <ol class="steps">
+        <li>
+          Se connecter sur <a href="https://resend.com" target="_blank">resend.com</a> avec le compte de la commune
+        </li>
+        <li>
+          Menu <strong>Domains</strong> → <strong>Add Domain</strong> → saisir <code>saintremeze.fr</code>
+        </li>
+        <li>
+          Resend affiche 3 enregistrements DNS à créer. Notez-les (ils sont propres à votre compte) :
+          <table style="margin-top:10px;">
+            <tr><th>Type</th><th>Nom</th><th>Valeur</th></tr>
+            <tr><td><code>TXT</code></td><td><code>resend._domainkey.saintremeze.fr</code></td><td>Clé DKIM fournie par Resend</td></tr>
+            <tr><td><code>MX</code></td><td><code>send.saintremeze.fr</code></td><td><code>feedback-smtp.us-east-1.amazonses.com</code></td></tr>
+            <tr><td><code>TXT</code></td><td><code>send.saintremeze.fr</code></td><td><code>v=spf1 include:amazonses.com ~all</code></td></tr>
+          </table>
+        </li>
+        <li>
+          Se connecter à l'interface de gestion DNS de votre hébergeur de domaine (OVH, Gandi, Ionos…) et créer ces 3 enregistrements en copiant les valeurs exactes depuis Resend
+        </li>
+        <li>
+          Retourner dans Resend → <strong>Domains</strong> → patienter quelques minutes à 48h selon le TTL DNS — le statut passe à <strong>Verified ✅</strong>
+        </li>
+      </ol>
+
+      <div class="box box-warn">
+        <strong>⚠️ Copier les valeurs exactes depuis Resend</strong>
+        Les valeurs affichées dans l'interface Resend sont propres à votre compte. Ne copiez pas celles de ce manuel — elles seraient incorrectes.
+      </div>
+
+      <h3>Configurer l'adresse expéditeur sur Render</h3>
+      <p>Une fois le domaine vérifié, mettre à jour la variable d'environnement sur <a href="https://render.com" target="_blank">render.com</a> → service backend → <strong>Environment</strong> :</p>
+      <table>
+        <tr><th>Variable</th><th>Valeur</th></tr>
+        <tr><td><code>EMAIL_FROM</code></td><td><code>Saint-Remèze &lt;no-reply@saintremeze.fr&gt;</code></td></tr>
+      </table>
+      <p>Render redémarre automatiquement. Aucune modification de code n'est nécessaire.</p>
+
+      <h3>Créer ou renouveler la clé RESEND_API_KEY</h3>
+      <p>Si la clé API doit être changée (exposition accidentelle, rotation de sécurité…) :</p>
+      <ol class="steps">
+        <li>Se connecter sur <a href="https://resend.com" target="_blank">resend.com</a> → menu <strong>API Keys</strong></li>
+        <li>Cliquer sur <strong>+ Create API Key</strong> — nommer la clé (ex : <code>saint-remeze-prod</code>), choisir la permission <strong>Sending access</strong></li>
+        <li>Copier immédiatement la clé affichée (elle ne sera plus visible ensuite)</li>
+        <li>Sur <a href="https://render.com" target="_blank">render.com</a> → service backend → <strong>Environment</strong> → remplacer la valeur de <code>RESEND_API_KEY</code></li>
+        <li>Supprimer l'ancienne clé dans Resend → <strong>API Keys</strong> → icône 🗑️</li>
+      </ol>
+
+      <div class="box box-ok">
+        <strong>✅ Vérifier que les emails partent</strong>
+        Après configuration, créez un signalement test depuis un compte citoyen, puis changez son statut depuis le dashboard. Le citoyen doit recevoir un email depuis <code>no-reply@saintremeze.fr</code> dans les quelques secondes.
+      </div>
+
+      <h3>Les emails atterrissent dans les spams ?</h3>
+      <p>Si les emails arrivent en spam malgré la vérification du domaine :</p>
+      <ul>
+        <li>Vérifier que les 3 enregistrements DNS (DKIM, MX, SPF) sont bien créés et que Resend affiche <strong>Verified ✅</strong></li>
+        <li>Demander aux citoyens de marquer l'expéditeur <code>no-reply@saintremeze.fr</code> comme fiable dans leur boîte mail</li>
+        <li>Vérifier les logs d'envoi dans Resend → menu <strong>Emails</strong> pour voir si l'envoi a été refusé ou bounced</li>
+      </ul>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- CHAPITRE 7 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="chapter" id="ch7">
+    <div class="chapter-header">
+      <div class="chapter-num">7</div>
       <h2>Variables d'environnement (Render)</h2>
     </div>
     <div class="chapter-body">
