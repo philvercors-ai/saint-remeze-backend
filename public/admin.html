@@ -120,7 +120,7 @@
         <div class="header">
             <div style="display: flex; align-items: center; gap: 0.75rem;">
                 <h1 style="font-size: 1.25rem;">Saint-Remèze - Gestion</h1>
-                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.13</button>
+                <button class="version-badge" onclick="document.getElementById('changelogModal').classList.add('active')">v7.2.14</button>
             </div>
             <div style="display: flex; gap: 0.5rem;">
                 <a href="/manuel-admin.html" target="_blank" class="btn btn-secondary" title="Manuel administrateur">📖 Manuel</a>
@@ -631,7 +631,23 @@
 
             <div class="cl-version">
                 <div class="cl-version-header">
-                    <span class="cl-tag current">v7.2.13</span>
+                    <span class="cl-tag current">v7.2.14</span>
+                    <span class="cl-date">23 juin 2026</span>
+                </div>
+                <ul class="cl-list">
+                    <li>Correction critique : chaque citoyen ne voit que ses propres signalements</li>
+                    <li>Correction : ouverture de l'app sur la page de connexion (et non d'inscription)</li>
+                    <li>Champ "Commentaire" inclus dans l'email de notification au citoyen</li>
+                    <li>Sécurité : .gitignore backend — fichiers .env exclus du dépôt Git</li>
+                    <li>Sécurité : CORS étendu à l'URL du backend (accès admin.html)</li>
+                    <li>Manuel admin accessible depuis le bandeau supérieur du dashboard</li>
+                    <li>Vercel Analytics activé sur le frontend</li>
+                </ul>
+            </div>
+
+            <div class="cl-version">
+                <div class="cl-version-header">
+                    <span class="cl-tag">v7.2.13</span>
                     <span class="cl-date">5 mai 2026</span>
                 </div>
                 <ul class="cl-list">

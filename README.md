@@ -1,4 +1,4 @@
-# Saint-Remèze Backend v7.2.11
+# Saint-Remèze Backend v7.2.14
 
 ## Installation
 ```bash
@@ -59,6 +59,15 @@ Render redémarre automatiquement le service. Aucune modification de code n'est 
 ---
 
 ## Historique des versions
+
+### v7.2.14
+- Correction critique : `GET /api/remarks` filtrait mal — tous les signalements visibles par tous (optionalAuth → auth)
+- Correction : redirection vers `/login` au lieu de `/register` pour les utilisateurs non connectés
+- CORS : ajout de `saint-remeze-backend.onrender.com` (nécessaire pour admin.html)
+- Sécurité : `.gitignore` backend ajouté — `.env` et `.env.production` retirés du tracking Git
+- Champ "Note Admin" renommé "Commentaire" + transmis dans l'email citoyen
+- Manuel admin (6 chapitres) ajouté dans `public/manuel-admin.html`
+- Lien vers le manuel admin dans le bandeau supérieur du dashboard
 
 ### v7.2.13
 - Sécurité : Helmet activé (en-têtes HTTP de protection)
