@@ -78,6 +78,18 @@ app.use('/api/remarks',       require('./routes/remarks'));
 app.use('/api/notifications', require('./routes/notifications'));
 app.use('/api/archive',       require('./routes/archive'));
 
+// ── HEALTH CHECK (ping UptimeRobot anti cold-start) ───────────────────────────
+app.get('/api/health', (req, res) => {
+  const dbState = ['disconnected', 'connected', 'connecting', 'disconnecting'];
+  res.json({
+    status: 'ok',
+    version: '7.2.15',
+    db: dbState[mongoose.connection.readyState] || 'unknown',
+    uptime: Math.floor(process.uptime()),
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ── ARCHIVAGE AUTO ────────────────────────────────────────────────────────────
 const Remark = require('./models/Remark');
 
@@ -140,7 +152,7 @@ const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log('🚀 ========================================');
-  console.log('   Serveur Saint-Remèze v7.2.13 - Render');
+  console.log('   Serveur Saint-Remèze v7.2.15 - Render');
   console.log('   ========================================');
   console.log('   🌐 Port:', PORT);
   console.log('   🌍 Environment:', process.env.NODE_ENV || 'production');

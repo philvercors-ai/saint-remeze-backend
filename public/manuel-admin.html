@@ -183,7 +183,7 @@
 <div class="hero">
   <h2>Manuel Administrateur</h2>
   <p>Guide complet pour gérer les signalements citoyens, administrer les comptes et maintenir l'application.</p>
-  <span class="hero-badge">Version 7.2 — Mai 2026</span>
+  <span class="hero-badge">Version 7.2.15 — Juin 2026</span>
   <br><br>
   <button class="print-btn" onclick="window.print()">🖨️ Imprimer</button>
 </div>
@@ -198,6 +198,7 @@
     <a class="toc-card" href="#ch5"><div class="toc-num">5</div>Mot de passe admin</a>
     <a class="toc-card" href="#ch6"><div class="toc-num">6</div>Emails &amp; Resend</a>
     <a class="toc-card" href="#ch7"><div class="toc-num">7</div>Variables d'environnement</a>
+    <a class="toc-card" href="#ch8"><div class="toc-num">8</div>Cold start &amp; monitoring</a>
   </div>
 </div>
 
@@ -610,10 +611,64 @@
     </div>
   </div>
 
+  <!-- ══════════════════════════════════════════════════ -->
+  <!-- CHAPITRE 8 -->
+  <!-- ══════════════════════════════════════════════════ -->
+  <div class="chapter" id="ch8">
+    <div class="chapter-header">
+      <div class="chapter-num">8</div>
+      <h2>Cold start &amp; monitoring (UptimeRobot)</h2>
+    </div>
+    <div class="chapter-body">
+
+      <p>Le backend tourne sur le <strong>plan gratuit de Render</strong>. Ce plan met le serveur en veille après <strong>15 minutes d'inactivité</strong>. Au réveil, la première requête prend environ 50 secondes — ce qu'on appelle le <em>cold start</em>.</p>
+
+      <div class="box box-warn">
+        <strong>⚠️ Impact sur les utilisateurs</strong>
+        Après une longue période sans connexion (nuit, week-end…), le premier citoyen qui ouvre l'application verra un délai de chargement pouvant atteindre 50 secondes.
+      </div>
+
+      <h3>Solution : ping périodique avec UptimeRobot</h3>
+
+      <p>L'application expose un endpoint de santé dédié :</p>
+      <div class="code-block">GET https://saint-remeze-backend.onrender.com/api/health</div>
+
+      <p>Ce endpoint répond instantanément avec l'état du serveur :</p>
+      <div class="code-block">{ <span class="key">"status"</span>: <span class="val">"ok"</span>, <span class="key">"version"</span>: <span class="val">"7.2.15"</span>, <span class="key">"db"</span>: <span class="val">"connected"</span>, <span class="key">"uptime"</span>: 3842, <span class="key">"timestamp"</span>: <span class="val">"2026-06-26T..."</span> }</div>
+
+      <p>UptimeRobot (plan gratuit) envoie ce ping toutes les 5 minutes, empêchant Render de mettre le serveur en veille.</p>
+
+      <h3>Configurer UptimeRobot</h3>
+      <ol class="steps">
+        <li>Créez un compte gratuit sur <a href="https://uptimerobot.com" target="_blank"><strong>uptimerobot.com</strong></a></li>
+        <li>Cliquez sur <strong>+ Add New Monitor</strong></li>
+        <li>Type : <strong>HTTP(s)</strong></li>
+        <li>Friendly Name : <code>Saint-Remèze Backend</code></li>
+        <li>URL : <code>https://saint-remeze-backend.onrender.com/api/health</code></li>
+        <li>Monitoring Interval : <strong>5 minutes</strong></li>
+        <li>Cliquez <strong>Create Monitor</strong></li>
+      </ol>
+
+      <div class="box box-ok">
+        <strong>✅ Résultat attendu</strong>
+        UptimeRobot affiche le monitor en vert (<em>Up</em>). Le serveur ne s'endort plus. Les citoyens accèdent à l'application sans délai, à toute heure.
+      </div>
+
+      <h3>Alertes email automatiques</h3>
+      <p>UptimeRobot vous envoie un email si le backend tombe en panne (réponse non-200 ou timeout). Configurez votre adresse email dans <strong>My Settings → Alert Contacts</strong> pour être prévenu immédiatement.</p>
+
+      <div class="box box-tip">
+        <strong>💡 Vérifier l'état en temps réel</strong>
+        Ouvrez <a href="https://saint-remeze-backend.onrender.com/api/health" target="_blank">saint-remeze-backend.onrender.com/api/health</a> dans un navigateur pour vérifier que le serveur est actif et que la base de données est connectée (<code>"db": "connected"</code>).
+      </div>
+
+    </div>
+  </div>
+
 </div>
 
 <footer style="text-align:center;padding:24px;font-size:12px;color:var(--muted);border-top:1px solid var(--border);">
-  &copy; 2026 Commune de Saint-Remèze — Manuel Administrateur v7.2 —
+  &copy; 2026 Commune de Saint-Remèze — Manuel Administrateur v7.2.15 —
   <a href="/index.html" style="color:var(--gold);text-decoration:none;">Retour à l'accueil</a> —
   <a href="/manuel.html" style="color:var(--gold);text-decoration:none;">Manuel citoyen</a>
 </footer>
